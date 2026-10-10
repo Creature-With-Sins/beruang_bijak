@@ -1,29 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// Contoh Provider 1: Auth/User state
-class AuthProvider extends ChangeNotifier {
-  bool _isLoggedIn = false;
-  bool get isLoggedIn => _isLoggedIn;
+// Import provider & screen aplikasi Pocket Budget
+import 'providers/transaction_provider.dart';
+import 'screens/main_navigation_screen.dart';
 
-  void login() {
-    _isLoggedIn = true;
-    notifyListeners();
-  }
-
-  void logout() {
-    _isLoggedIn = false;
-    notifyListeners();
-  }
-}
-
-// Contoh Provider 2: Theme/App Settings state
+// ThemeProvider untuk fitur Dark/Light Mode
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.light;
   ThemeMode get themeMode => _themeMode;
 
   void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    _themeMode =
+        _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 }
@@ -32,17 +21,18 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        // Provider utama untuk transaksi keuangan
+        ChangeNotifierProvider(create: (_) => TransactionProvider()),
+        // Provider untuk pengaturan tema aplikasi
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        // Tambahin provider lain di sini kalo ada
       ],
-      child: const MyApp(),
+      child: const PocketBudgetApp(),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class PocketBudgetApp extends StatelessWidget {
+  const PocketBudgetApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -50,59 +40,16 @@ class MyApp extends StatelessWidget {
     final themeProvider = context.watch<ThemeProvider>();
 
     return MaterialApp(
-      title: 'MultiProvider Demo',
+      title: 'Pocket Budget',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Cara panggil provider di UI
-    final authProvider = context.watch<AuthProvider>();
-    final themeProvider = context.read<ThemeProvider>();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home Screen'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.brightness_6),
-            onPressed: () => themeProvider.toggleTheme(),
-          ),
-        ],
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        useMaterial3: true,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              authProvider.isLoggedIn
-                  ? 'Status: Udah Login'
-                  : 'Status: Belum Login',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                if (authProvider.isLoggedIn) {
-                  context.read<AuthProvider>().logout();
-                } else {
-                  context.read<AuthProvider>().login();
-                }
-              },
-              child: Text(authProvider.isLoggedIn ? 'Logout' : 'Login'),
-            ),
-          ],
-        ),
-      ),
+      darkTheme: ThemeData.dark(useMaterial3: true),
+      // Pintu utama aplikasi mengarah ke BottomNavigationBar
+      home: const MainNavigationScreen(),
     );
   }
 }
