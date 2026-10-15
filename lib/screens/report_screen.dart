@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class ReportScreen extends StatelessWidget {
+  const ReportScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('Dashboard Screen')),
+      body: Center(child: Text('Report Screen')),
     );
   }
 }
