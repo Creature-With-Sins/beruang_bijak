@@ -31,7 +31,7 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Pocket Budget',
+              'Beruang Bijak',
               style: TextStyle(
                 color: Color(0xFF172B4D),
                 fontWeight: FontWeight.bold,
