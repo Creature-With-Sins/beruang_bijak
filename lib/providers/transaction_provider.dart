@@ -1,30 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/transaction_model.dart';
+import '../services/database_helper.dart';
 
 class TransactionProvider with ChangeNotifier {
-  // Data Dummy Awal buat Testing UI Tim
-  final List<TransactionModel> _transactions = [
-    TransactionModel(
-      id: const Uuid().v4(),
-      title: 'Transfer Uang Saku',
-      amount: 1500000,
-      type: TransactionType.income,
-      category: 'Pemasukan',
-      date: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    TransactionModel(
-      id: const Uuid().v4(),
-      title: 'Makan Siang Warteg',
-      amount: 25000,
-      type: TransactionType.expense,
-      category: 'Makanan',
-      date: DateTime.now(),
-      note: 'Ayam + Es Teh',
-    ),
-  ];
+  List<TransactionModel> _transactions = [];
 
   List<TransactionModel> get transactions => [..._transactions];
+
+  TransactionProvider() {
+    loadTransactions(); // Otomatis muat data dari SQLite saat provider dibuat
+  }
+
+  // Muat Data dari SQLite
+  Future<void> loadTransactions() async {
+    _transactions = await DatabaseHelper.instance.getAllTransactions();
+    notifyListeners();
+  }
 
   // Hitung Total Pemasukan
   double get totalIncome {
@@ -43,15 +35,15 @@ class TransactionProvider with ChangeNotifier {
   // Total Sisa Saldo
   double get totalBalance => totalIncome - totalExpense;
 
-  // Fungsi Tambah Transaksi (Dikerjakan Anggota 1 & dipanggil Anggota 2)
-  void addTransaction({
+  // Tambah Transaksi Ke Memory & SQLite
+  Future<void> addTransaction({
     required String title,
     required double amount,
     required TransactionType type,
     required String category,
     required DateTime date,
     String? note,
-  }) {
+  }) async {
     final newTx = TransactionModel(
       id: const Uuid().v4(),
       title: title,
@@ -62,12 +54,16 @@ class TransactionProvider with ChangeNotifier {
       note: note,
     );
 
-    _transactions.insert(0, newTx); // Tambah ke urutan paling atas
-    notifyListeners(); // Otomatis refresh UI di semua screen!
+    // Simpan ke SQLite
+    await DatabaseHelper.instance.insertTransaction(newTx);
+
+    _transactions.insert(0, newTx);
+    notifyListeners();
   }
 
-  // Fungsi Hapus Transaksi
-  void deleteTransaction(String id) {
+  // Hapus Transaksi Dari Memory & SQLite
+  Future<void> deleteTransaction(String id) async {
+    await DatabaseHelper.instance.deleteTransaction(id);
     _transactions.removeWhere((tx) => tx.id == id);
     notifyListeners();
   }
