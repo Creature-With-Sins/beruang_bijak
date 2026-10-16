@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart'; // Import untuk inisialisasi format tanggal lokal
 
 // Import provider & screen aplikasi Pocket Budget
 import 'providers/transaction_provider.dart';
@@ -17,7 +18,13 @@ class ThemeProvider extends ChangeNotifier {
   }
 }
 
-void main() {
+void main() async {
+  // Pastikan binding Flutter sudah diinisialisasi sebelum panggilan async
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inisialisasi format data tanggal lokal bahasa Indonesia
+  await initializeDateFormatting('id_ID', null);
+
   runApp(
     MultiProvider(
       providers: [
