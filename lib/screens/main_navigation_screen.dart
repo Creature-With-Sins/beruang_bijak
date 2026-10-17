@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
 import 'home_screen.dart';
 import 'report_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
+import '../widgets/custom_drawer.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -12,15 +14,9 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Daftar halaman yang dikerjakan oleh Anggota 2 & Anggota 3
-  final List<Widget> _screens = const [
-    HomeScreen(),     // Tab 0: Dashboard (Anggota 2)
-    ReportScreen(),   // Tab 1: Laporan & Grafik (Anggota 3)
-    HistoryScreen(),  // Tab 2: Histori & Search (Anggota 3)
-    ProfileScreen(),  // Tab 3: Profil & Setting (Anggota 3)
-  ];
+  int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -28,13 +24,32 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  void _goToDashboard() {
+    setState(() {
+      _selectedIndex = 0;
+    });
+  }
+
+  void _openDrawer() {
+    debugPrint('Tombol menu ditekan');
+    debugPrint('Scaffold state: ${_scaffoldKey.currentState}');
+
+    _scaffoldKey.currentState?.openDrawer();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      HomeScreen(onMenuPressed: _openDrawer),
+      const ReportScreen(),
+      const HistoryScreen(),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      key: _scaffoldKey,
+      drawer: CustomDrawer(onDashboardTap: _goToDashboard),
+      body: IndexedStack(index: _selectedIndex, children: screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

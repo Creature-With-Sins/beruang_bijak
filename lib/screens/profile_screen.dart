@@ -25,6 +25,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ).format(amount);
   }
 
+  void _showLogoutDialog() {
+    showDialog<void>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 32),
+            title: const Text('Konfirmasi Logout'),
+            content: const Text('Apakah lo yakin ingin keluar dari akun?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Batal'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Fungsi logout menunggu integrasi autentikasi.',
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Logout'),
+              ),
+            ],
+          ),
+    );
+  }
+
   Future<void> _editBudget({required bool monthly}) async {
     final currentBudget = monthly ? _monthlyBudget : _dailyBudget;
 
@@ -36,15 +72,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(
-            monthly ? 'Budget Bulanan' : 'Budget Harian',
-          ),
+          title: Text(monthly ? 'Budget Bulanan' : 'Budget Harian'),
           content: TextField(
             controller: controller,
             keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-            ],
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: const InputDecoration(
               labelText: 'Batas pengeluaran (Rupiah)',
               prefixText: 'Rp ',
@@ -107,10 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 5),
             FittedBox(
@@ -142,9 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final progress = (spent / budget).clamp(0.0, 1.0);
     final exceeded = spent > budget;
 
-    final color = exceeded
-        ? const Color(0xFFE57373)
-        : const Color(0xFF16A6A1);
+    final color = exceeded ? const Color(0xFFE57373) : const Color(0xFF16A6A1);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -180,10 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Text(
                       period,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ],
                 ),
@@ -191,10 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               IconButton(
                 onPressed: onEdit,
                 tooltip: 'Ubah budget',
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  color: Color(0xFF087F8C),
-                ),
+                icon: const Icon(Icons.edit_outlined, color: Color(0xFF087F8C)),
               ),
             ],
           ),
@@ -210,10 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 4),
           Text(
             'dari ${_formatRupiah(budget)}',
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 12),
           ClipRRect(
@@ -289,10 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF087F8C),
-                    Color(0xFF16A6A1),
-                  ],
+                  colors: [Color(0xFF087F8C), Color(0xFF16A6A1)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -329,10 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         SizedBox(height: 6),
                         Text(
                           'Kelola keuanganmu dengan lebih teratur.',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
                     ),
@@ -386,10 +398,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Expanded(
                     child: Text(
                       'Total transaksi tercatat',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF172B4D),
-                      ),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF172B4D)),
                     ),
                   ),
                   Text(
@@ -415,10 +424,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 6),
             const Text(
               'Atur batas pengeluaran agar keuangan lebih terkendali.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 14),
             _buildBudgetCard(
@@ -438,15 +444,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.calendar_month_rounded,
               onEdit: () => _editBudget(monthly: true),
             ),
+
+            const SizedBox(height: 24),
+
+            OutlinedButton.icon(
+              onPressed: _showLogoutDialog,
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('Logout dari Akun'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                minimumSize: const Size(double.infinity, 52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
             const SizedBox(height: 18),
             const Center(
               child: Text(
                 'Pocket Budget • Pengelolaan Keuangan',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: Colors.grey, fontSize: 11),
               ),
             ),
           ],
