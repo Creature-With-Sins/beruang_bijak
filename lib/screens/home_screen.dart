@@ -7,7 +7,9 @@ import '../widgets/transaction_card.dart';
 import 'add_transaction_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final VoidCallback onMenuPressed;
+
+  const HomeScreen({super.key, required this.onMenuPressed});
 
   String _formatRupiah(num amount) {
     return NumberFormat.currency(
@@ -27,6 +29,11 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFFF5F7FA),
         elevation: 0,
+        leading: IconButton(
+          tooltip: 'Buka menu',
+          onPressed: onMenuPressed,
+          icon: const Icon(Icons.menu_rounded, color: Color(0xFF172B4D)),
+        ),
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
