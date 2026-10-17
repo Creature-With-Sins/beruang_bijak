@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Import untuk inisialisasi format tanggal lokal
+import 'package:beruang_bijak/screens/login_screen.dart';
 
 // Import provider & screen aplikasi Pocket Budget
 import 'providers/transaction_provider.dart';
 import 'screens/main_navigation_screen.dart';
+import 'package:beruang_bijak/providers/auth_provider.dart';
 
 // ThemeProvider untuk fitur Dark/Light Mode
 class ThemeProvider extends ChangeNotifier {
@@ -15,6 +17,35 @@ class ThemeProvider extends ChangeNotifier {
     _themeMode =
         _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
+  }
+}
+
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      context.read<AuthProvider>().initialize();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+
+    if (authProvider.isAuthenticated) {
+      return const MainNavigationScreen();
+    }
+
+    return const LoginScreen();
   }
 }
 
