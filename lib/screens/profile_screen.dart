@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
 
+import '../providers/auth_provider.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -43,16 +45,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  // 1. Tutup dialognya
                   Navigator.pop(dialogContext);
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Fungsi logout menunggu integrasi autentikasi.',
-                      ),
-                    ),
-                  );
+                  context.read<TransactionProvider>().clearOnLogout();
+
+                  // 2. Eksekusi fungsi logout dari AuthProvider
+                  await context.read<AuthProvider>().logout();
                 },
                 child: const Text('Logout'),
               ),

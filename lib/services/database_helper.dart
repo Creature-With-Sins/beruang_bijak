@@ -1,5 +1,7 @@
-import 'package:sqflite/sqflite.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/transaction_model.dart';
 
 class DatabaseHelper {
@@ -15,21 +17,36 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDB(String filePath) async {
+    if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
+
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
-  // Membuat tabel transaksi di SQLite
   Future<void> _createDB(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE users (
+        id TEXT PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+      )
+    ''');
+
     await db.execute('''
       CREATE TABLE transactions (
         id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
         title TEXT NOT NULL,
         amount REAL NOT NULL,
         type TEXT NOT NULL,
@@ -40,13 +57,63 @@ class DatabaseHelper {
     ''');
   }
 
-  // 1. Simpan Transaksi Baru
-  Future<int> insertTransaction(TransactionModel transaction) async {
-    final db = await instance.database;
-    return await db.insert('transactions', transaction.toMap());
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('DROP TABLE IF EXISTS transactions');
+      await _createDB(db, newVersion);
+    }
   }
 
-  // 2. Ambil Semua Data Transaksi
+  // === FUNGSI USER AUTHENTICATION ===
+  Future<int> registerUser(String id, String username, String password) async {
+    final db = await instance.database;
+    return await db.insert('users', {
+      'id': id,
+      'username': username,
+      'password': password,
+    });
+  }
+
+  Future<Map<String, dynamic>?> loginUser(
+    String username,
+    String password,
+  ) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'users',
+      where: 'username = ? AND password = ?',
+      whereArgs: [username, password],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
+  }
+
+  // === FUNGSI TRANSAKSI MULTI-USER ===
+  Future<int> insertTransaction(
+    TransactionModel transaction,
+    String userId,
+  ) async {
+    final db = await instance.database;
+    final map = transaction.toMap();
+    map['userId'] = userId;
+    return await db.insert('transactions', map);
+  }
+
+  Future<List<TransactionModel>> getTransactionsByUserId(String userId) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'transactions',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'date DESC',
+    );
+
+    return result.map((json) => TransactionModel.fromMap(json)).toList();
+  }
+
   Future<List<TransactionModel>> getAllTransactions() async {
     final db = await instance.database;
     final result = await db.query('transactions', orderBy: 'date DESC');
@@ -54,13 +121,8 @@ class DatabaseHelper {
     return result.map((json) => TransactionModel.fromMap(json)).toList();
   }
 
-  // 3. Hapus Transaksi Berdasarkan ID
   Future<int> deleteTransaction(String id) async {
     final db = await instance.database;
-    return await db.delete(
-      'transactions',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
   }
 }

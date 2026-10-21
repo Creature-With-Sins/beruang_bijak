@@ -48,11 +48,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final initial = _date.isAfter(now) ? now : _date;
+
     final selected = await showDatePicker(
       context: context,
-      initialDate: _date,
+      initialDate: initial,
       firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      lastDate: DateTime(now.year + 5),
       locale: const Locale('id', 'ID'),
       helpText: 'Pilih tanggal transaksi',
     );
@@ -84,7 +87,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     setState(() => _isSaving = true);
 
     try {
-      context.read<TransactionProvider>().addTransaction(
+      await context.read<TransactionProvider>().addTransaction(
         title: _titleController.text.trim(),
         amount: amount,
         type: _type,
@@ -113,13 +116,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final categories = _categories[_typeLabel]!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Tambah Transaksi',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       ),
       body: SafeArea(
         child: Form(
@@ -127,12 +130,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              const Text(
+              Text(
                 'Catat keuanganmu',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF172B4D),
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
               const SizedBox(height: 6),
@@ -244,7 +247,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Tanggal
+              // Tanggal Transaksi (Sudah bisa diklik dengan lancar)
               const Text(
                 'Tanggal Transaksi',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -330,7 +333,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       hintText: hint,
       prefixIcon: Icon(icon, color: const Color(0xFF087F8C)),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: Theme.of(context).cardColor,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Color(0xFFE1E7ED)),

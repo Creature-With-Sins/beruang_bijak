@@ -72,10 +72,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: theme.colorScheme.primaryContainer,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        Icons.account_balance_wallet_rounded,
-                        size: 48,
-                        color: theme.colorScheme.primary,
+                      child: Image.asset(
+                        'assets/images/app_logo.jpeg', // Path logo kamu
+                        width: 64,                    // Sesuaikan ukuran lebar logo
+                        height: 64,                   // Sesuaikan ukuran tinggi logo
+                        fit: BoxFit.contain,
                       ),
                     ),
                     Text(

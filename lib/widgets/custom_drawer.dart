@@ -2,20 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart';
+import '../providers/auth_provider.dart';
+import '../providers/transaction_provider.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onDashboardTap;
 
   const CustomDrawer({super.key, required this.onDashboardTap});
 
-  void _showLogoutDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext parentContext) {
     showDialog<void>(
-      context: context,
+      context: parentContext,
       builder:
           (dialogContext) => AlertDialog(
             icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 32),
             title: const Text('Konfirmasi Logout'),
-            content: const Text('Apakah lo yakin ingin keluar dari akun?'),
+            content: const Text('Apakah kamu yakin ingin keluar dari akun?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
@@ -26,16 +28,18 @@ class CustomDrawer extends StatelessWidget {
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  // 1. Tutup dialog
                   Navigator.pop(dialogContext);
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Fungsi logout menunggu integrasi autentikasi.',
-                      ),
-                    ),
-                  );
+                  // 2. Tutup Drawer
+                  Navigator.pop(parentContext);
+
+                  // 3. Reset data transaksi di memori
+                  parentContext.read<TransactionProvider>().clearOnLogout();
+
+                  // 4. Jalankan logout dari AuthProvider
+                  await parentContext.read<AuthProvider>().logout();
                 },
                 child: const Text('Logout'),
               ),
@@ -47,7 +51,10 @@ class CustomDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    final authProvider = context.watch<AuthProvider>();
     final isDarkMode = themeProvider.themeMode == ThemeMode.dark;
+
+    final username = authProvider.currentUsername ?? 'Pengguna';
 
     return Drawer(
       child: SafeArea(
@@ -63,20 +70,23 @@ class CustomDrawer extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.account_balance_wallet_rounded,
-                      color: Color(0xFF087F8C),
-                      size: 32,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/app_logo.jpeg',
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
-                  SizedBox(height: 14),
-                  Text(
+                  const SizedBox(height: 14),
+                  const Text(
                     'Beruang Bijak',
                     style: TextStyle(
                       color: Colors.white,
@@ -84,16 +94,17 @@ class CustomDrawer extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Halo, Pengguna!',
-                    style: TextStyle(
+                    'Halo, $username!',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
+                      fontSize: 16,
                     ),
                   ),
-                  SizedBox(height: 4),
-                  Text(
+                  const SizedBox(height: 4),
+                  const Text(
                     'Kelola keuangan dengan bijak',
                     style: TextStyle(color: Colors.white70),
                   ),
@@ -137,7 +148,6 @@ class CustomDrawer extends StatelessWidget {
                   ),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
                   _showLogoutDialog(context);
                 },
               ),
