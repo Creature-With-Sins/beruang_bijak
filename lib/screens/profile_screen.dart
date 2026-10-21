@@ -1,68 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/transaction_model.dart';
+import '../providers/auth_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../utils/app_formatters.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  double _dailyBudget = 100000;
-  double _monthlyBudget = 3000000;
 
-  String _formatRupiah(num amount) {
-    return NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    ).format(amount);
-  }
-
-  void _showLogoutDialog() {
+  void _showLogoutDialog(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 32),
-            title: const Text('Konfirmasi Logout'),
-            content: const Text('Apakah lo yakin ingin keluar dari akun?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Fungsi logout menunggu integrasi autentikasi.',
-                      ),
-                    ),
-                  );
-                },
-                child: const Text('Logout'),
-              ),
-            ],
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 32),
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Apakah kamu yakin ingin keluar dari akun?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Batal'),
           ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await context.read<AuthProvider>().logout();
+            },
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
     );
   }
 
-  Future<void> _editBudget({required bool monthly}) async {
-    final currentBudget = monthly ? _monthlyBudget : _dailyBudget;
+  Future<void> _editBudget(BuildContext context, {required bool monthly}) async {
+    final provider = context.read<TransactionProvider>();
+    final currentBudget = monthly ? provider.monthlyBudget : provider.dailyBudget;
 
     final controller = TextEditingController(
       text: currentBudget.toStringAsFixed(0),
@@ -91,11 +71,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             FilledButton(
               onPressed: () {
                 final value = double.tryParse(controller.text);
-
                 if (value == null || value <= 0) {
                   return;
                 }
-
                 Navigator.pop(dialogContext, value);
               },
               child: const Text('Simpan'),
@@ -107,14 +85,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     controller.dispose();
 
-    if (result != null && mounted) {
-      setState(() {
-        if (monthly) {
-          _monthlyBudget = result;
-        } else {
-          _dailyBudget = result;
-        }
-      });
+    if (result != null && context.mounted) {
+      final messenger = ScaffoldMessenger.of(context);
+      if (monthly) {
+        await provider.setMonthlyBudget(result);
+      } else {
+        await provider.setDailyBudget(result);
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            monthly
+                ? 'Budget bulanan berhasil diperbarui.'
+                : 'Budget harian berhasil diperbarui.',
+          ),
+          backgroundColor: const Color(0xFF087F8C),
+        ),
+      );
     }
   }
 
@@ -168,9 +155,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required VoidCallback onEdit,
     required IconData icon,
   }) {
-    final progress = (spent / budget).clamp(0.0, 1.0);
+    final progress = budget > 0 ? (spent / budget).clamp(0.0, 1.0) : 0.0;
     final exceeded = spent > budget;
-
     final color = exceeded ? const Color(0xFFE57373) : const Color(0xFF16A6A1);
 
     return Container(
@@ -221,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 18),
           Text(
-            _formatRupiah(spent),
+            AppFormatters.formatCurrency(spent),
             style: const TextStyle(
               fontSize: 21,
               fontWeight: FontWeight.bold,
@@ -230,7 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'dari ${_formatRupiah(budget)}',
+            'dari ${AppFormatters.formatCurrency(budget)}',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 12),
@@ -246,9 +232,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 10),
           Text(
             exceeded
-                ? 'Budget terlampaui sebesar '
-                    '${_formatRupiah(spent - budget)}'
-                : 'Sisa budget ${_formatRupiah(budget - spent)}',
+                ? 'Budget terlampaui sebesar ${AppFormatters.formatCurrency(spent - budget)}'
+                : 'Sisa budget ${AppFormatters.formatCurrency(budget - spent)}',
             style: TextStyle(
               fontSize: 12,
               color: color,
@@ -263,8 +248,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TransactionProvider>();
+    final authProvider = context.watch<AuthProvider>();
     final transactions = provider.transactions;
     final now = DateTime.now();
+
+    final username = authProvider.currentUsername ?? 'Pengguna';
 
     final todayExpense = transactions
         .where(
@@ -322,28 +310,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.white.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.person_rounded,
-                      color: Colors.white,
-                      size: 38,
+                    child: Center(
+                      child: Text(
+                        username.isNotEmpty ? username[0].toUpperCase() : 'B',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Pengguna Pocket Budget',
-                          style: TextStyle(
+                          username,
+                          style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 17,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 6),
-                        Text(
-                          'Kelola keuanganmu dengan lebih teratur.',
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Beruang Bijak • Kelola keuangan teratur',
                           style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
@@ -366,14 +359,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _buildStatCard(
                   title: 'Pemasukan',
-                  value: _formatRupiah(provider.totalIncome),
+                  value: AppFormatters.formatCurrency(provider.totalIncome),
                   icon: Icons.south_west_rounded,
                   color: const Color(0xFF16A6A1),
                 ),
                 const SizedBox(width: 12),
                 _buildStatCard(
                   title: 'Pengeluaran',
-                  value: _formatRupiah(provider.totalExpense),
+                  value: AppFormatters.formatCurrency(provider.totalExpense),
                   icon: Icons.north_east_rounded,
                   color: const Color(0xFFE57373),
                 ),
@@ -431,24 +424,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Budget Harian',
               period: 'Pengeluaran hari ini',
               spent: todayExpense,
-              budget: _dailyBudget,
+              budget: provider.dailyBudget,
               icon: Icons.today_rounded,
-              onEdit: () => _editBudget(monthly: false),
+              onEdit: () => _editBudget(context, monthly: false),
             ),
             const SizedBox(height: 12),
             _buildBudgetCard(
               title: 'Budget Bulanan',
-              period: DateFormat('MMMM yyyy', 'id_ID').format(now),
+              period: AppFormatters.formatMonthYear(now),
               spent: monthlyExpense,
-              budget: _monthlyBudget,
+              budget: provider.monthlyBudget,
               icon: Icons.calendar_month_rounded,
-              onEdit: () => _editBudget(monthly: true),
+              onEdit: () => _editBudget(context, monthly: true),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
 
             OutlinedButton.icon(
-              onPressed: _showLogoutDialog,
+              onPressed: () => _showLogoutDialog(context),
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Logout dari Akun'),
               style: OutlinedButton.styleFrom(
@@ -463,7 +456,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 18),
             const Center(
               child: Text(
-                'Pocket Budget • Pengelolaan Keuangan',
+                'Beruang Bijak • Solusi Pengelolaan Keuangan',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey, fontSize: 11),
               ),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/date_symbol_data_local.dart'; // Import untuk inisialisasi format tanggal lokal
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:beruang_bijak/screens/login_screen.dart';
 
-// Import provider & screen aplikasi Pocket Budget
+import 'providers/auth_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'screens/main_navigation_screen.dart';
-import 'package:beruang_bijak/providers/auth_provider.dart';
 
 // ThemeProvider untuk fitur Dark/Light Mode
 class ThemeProvider extends ChangeNotifier {
@@ -31,15 +31,24 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
-
-    Future.microtask(() {
-      context.read<AuthProvider>().initialize();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AuthProvider>().initialize();
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) {
+        context
+            .read<TransactionProvider>()
+            .setCurrentUser(authProvider.currentUsername);
+      }
+    });
 
     if (authProvider.isAuthenticated) {
       return const MainNavigationScreen();
@@ -50,7 +59,6 @@ class _AuthGateState extends State<AuthGate> {
 }
 
 void main() async {
-  // Pastikan binding Flutter sudah diinisialisasi sebelum panggilan async
   WidgetsFlutterBinding.ensureInitialized();
   
   // Inisialisasi format data tanggal lokal bahasa Indonesia
@@ -59,35 +67,57 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        // Provider utama untuk transaksi keuangan
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
-        // Provider untuk pengaturan tema aplikasi
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: const PocketBudgetApp(),
+      child: const BeruangBijakApp(),
     ),
   );
 }
 
-class PocketBudgetApp extends StatelessWidget {
-  const PocketBudgetApp({super.key});
+class BeruangBijakApp extends StatelessWidget {
+  const BeruangBijakApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Mengakses state dari ThemeProvider
     final themeProvider = context.watch<ThemeProvider>();
 
     return MaterialApp(
-      title: 'Pocket Budget',
+      title: 'Beruang Bijak',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('id', 'ID'),
+      supportedLocales: const [
+        Locale('id', 'ID'),
+        Locale('en', 'US'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       themeMode: themeProvider.themeMode,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF087F8C),
+          primary: const Color(0xFF087F8C),
+          secondary: const Color(0xFF16A6A1),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF5F7FA),
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
         useMaterial3: true,
       ),
-      darkTheme: ThemeData.dark(useMaterial3: true),
-      // Pintu utama aplikasi mengarah ke BottomNavigationBar
-      home: const MainNavigationScreen(),
+      darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF087F8C),
+          brightness: Brightness.dark,
+        ),
+      ),
+      home: const AuthGate(),
     );
   }
 }

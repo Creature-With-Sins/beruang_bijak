@@ -1,13 +1,16 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../models/transaction_model.dart';
+import '../utils/app_formatters.dart';
 
 class ChartWidget extends StatelessWidget {
   final List<TransactionModel> transactions;
+  final TransactionType type;
 
   const ChartWidget({
     super.key,
     required this.transactions,
+    this.type = TransactionType.expense,
   });
 
   static const List<Color> _colors = [
@@ -21,15 +24,15 @@ class ChartWidget extends StatelessWidget {
     Color(0xFF90A4AE),
   ];
 
+
+
   @override
   Widget build(BuildContext context) {
-    final expenses = transactions
-        .where((tx) => tx.type == TransactionType.expense)
-        .toList();
+    final filtered = transactions.where((tx) => tx.type == type).toList();
 
     final Map<String, double> categoryTotals = {};
 
-    for (final tx in expenses) {
+    for (final tx in filtered) {
       categoryTotals[tx.category] =
           (categoryTotals[tx.category] ?? 0) + tx.amount;
     }
@@ -40,12 +43,26 @@ class ChartWidget extends StatelessWidget {
     );
 
     if (total <= 0) {
-      return const SizedBox(
-        height: 200,
+      return SizedBox(
+        height: 180,
         child: Center(
-          child: Text(
-            'Belum ada data pengeluaran.',
-            style: TextStyle(color: Colors.grey),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.pie_chart_outline_rounded,
+                size: 42,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                type == TransactionType.expense
+                    ? 'Belum ada data pengeluaran pada periode ini.'
+                    : 'Belum ada data pemasukan pada periode ini.',
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       );
@@ -57,11 +74,11 @@ class ChartWidget extends StatelessWidget {
     return Column(
       children: [
         SizedBox(
-          height: 220,
+          height: 200,
           child: PieChart(
             PieChartData(
               sectionsSpace: 3,
-              centerSpaceRadius: 48,
+              centerSpaceRadius: 44,
               sections: List.generate(entries.length, (index) {
                 final entry = entries[index];
                 final percentage = entry.value / total * 100;
@@ -69,10 +86,10 @@ class ChartWidget extends StatelessWidget {
                 return PieChartSectionData(
                   color: _colors[index % _colors.length],
                   value: entry.value,
-                  title: percentage >= 5
+                  title: percentage >= 8
                       ? '${percentage.toStringAsFixed(0)}%'
                       : '',
-                  radius: 58,
+                  radius: 54,
                   titleStyle: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -83,39 +100,64 @@ class ChartWidget extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 22),
         ...List.generate(entries.length, (index) {
           final entry = entries[index];
           final percentage = entry.value / total * 100;
+          final color = _colors[index % _colors.length];
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: _colors[index % _colors.length],
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    entry.key,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF172B4D),
+                Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        entry.key,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF172B4D),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      AppFormatters.formatCurrency(entry.value),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${percentage.toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Color(0xFF172B4D),
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  '${percentage.toStringAsFixed(1)}%',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Color(0xFF172B4D),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: percentage / 100,
+                    minHeight: 5,
+                    backgroundColor: const Color(0xFFF0F3F6),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
                   ),
                 ),
               ],

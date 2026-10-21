@@ -64,18 +64,36 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      width: 92,
-                      height: 92,
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.account_balance_wallet_rounded,
-                        size: 48,
-                        color: theme.colorScheme.primary,
+                    Center(
+                      child: Container(
+                        width: 104,
+                        height: 104,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF087F8C).withValues(alpha: 0.25),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(52),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: theme.colorScheme.primaryContainer,
+                              child: Icon(
+                                Icons.account_balance_wallet_rounded,
+                                size: 48,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                     Text(
@@ -153,6 +171,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: _isLoading
                               ? null
                               : () async {
+                                  final messenger =
+                                      ScaffoldMessenger.of(context);
                                   final registered = await Navigator.push<bool>(
                                     context,
                                     MaterialPageRoute(
@@ -160,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   );
                                   if (registered == true && mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    messenger.showSnackBar(
                                       const SnackBar(
                                         content: Text(
                                           'Akun berhasil dibuat, silakan login',

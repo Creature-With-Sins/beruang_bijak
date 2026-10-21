@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart';
+import '../providers/auth_provider.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onDashboardTap;
@@ -11,43 +12,37 @@ class CustomDrawer extends StatelessWidget {
   void _showLogoutDialog(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 32),
-            title: const Text('Konfirmasi Logout'),
-            content: const Text('Apakah lo yakin ingin keluar dari akun?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Fungsi logout menunggu integrasi autentikasi.',
-                      ),
-                    ),
-                  );
-                },
-                child: const Text('Logout'),
-              ),
-            ],
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 32),
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Apakah kamu yakin ingin keluar dari akun?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Batal'),
           ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await context.read<AuthProvider>().logout();
+            },
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    final authProvider = context.watch<AuthProvider>();
     final isDarkMode = themeProvider.themeMode == ThemeMode.dark;
+    final username = authProvider.currentUsername ?? 'Pengguna';
 
     return Drawer(
       child: SafeArea(
@@ -63,39 +58,82 @@ class CustomDrawer extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.account_balance_wallet_rounded,
-                      color: Color(0xFF087F8C),
-                      size: 32,
-                    ),
-                  ),
-                  SizedBox(height: 14),
-                  Text(
-                    'Beruang Bijak',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Halo, Pengguna!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Kelola keuangan dengan bijak',
-                    style: TextStyle(color: Colors.white70),
+                  Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 58,
+                            height: 58,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => CircleAvatar(
+                              radius: 29,
+                              backgroundColor: Colors.white,
+                              child: Text(
+                                username.isNotEmpty
+                                    ? username[0].toUpperCase()
+                                    : 'B',
+                                style: const TextStyle(
+                                  color: Color(0xFF087F8C),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 22,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Beruang Bijak',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Halo, $username! 👋',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Kelola keuangan bijak',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -145,7 +183,7 @@ class CustomDrawer extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.only(bottom: 12),
               child: Text(
-                'Beruang Bijak',
+                'Beruang Bijak • v1.0.0',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),

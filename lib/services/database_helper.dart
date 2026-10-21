@@ -10,7 +10,7 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('pocket_budget.db');
+    _database = await _initDB('beruang_bijak.db');
     return _database!;
   }
 
@@ -20,8 +20,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -30,6 +31,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE transactions (
         id TEXT PRIMARY KEY,
+        userId TEXT,
         title TEXT NOT NULL,
         amount REAL NOT NULL,
         type TEXT NOT NULL,
@@ -40,21 +42,50 @@ class DatabaseHelper {
     ''');
   }
 
+  // Migrasi database dari versi lama ke baru
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE transactions ADD COLUMN userId TEXT;');
+    }
+  }
+
   // 1. Simpan Transaksi Baru
   Future<int> insertTransaction(TransactionModel transaction) async {
     final db = await instance.database;
     return await db.insert('transactions', transaction.toMap());
   }
 
-  // 2. Ambil Semua Data Transaksi
-  Future<List<TransactionModel>> getAllTransactions() async {
+  // 2. Ambil Semua Data Transaksi (Opsional Filter per User)
+  Future<List<TransactionModel>> getAllTransactions({String? userId}) async {
     final db = await instance.database;
-    final result = await db.query('transactions', orderBy: 'date DESC');
+    final List<Map<String, dynamic>> result;
+
+    if (userId != null && userId.isNotEmpty) {
+      result = await db.query(
+        'transactions',
+        where: 'userId = ? OR userId IS NULL',
+        whereArgs: [userId],
+        orderBy: 'date DESC',
+      );
+    } else {
+      result = await db.query('transactions', orderBy: 'date DESC');
+    }
 
     return result.map((json) => TransactionModel.fromMap(json)).toList();
   }
 
-  // 3. Hapus Transaksi Berdasarkan ID
+  // 3. Update Transaksi
+  Future<int> updateTransaction(TransactionModel transaction) async {
+    final db = await instance.database;
+    return await db.update(
+      'transactions',
+      transaction.toMap(),
+      where: 'id = ?',
+      whereArgs: [transaction.id],
+    );
+  }
+
+  // 4. Hapus Transaksi Berdasarkan ID
   Future<int> deleteTransaction(String id) async {
     final db = await instance.database;
     return await db.delete(

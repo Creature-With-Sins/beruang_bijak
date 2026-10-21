@@ -62,12 +62,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      Icons.person_add_alt_1_rounded,
-                      size: 64,
-                      color: theme.colorScheme.primary,
+                    Center(
+                      child: Container(
+                        width: 88,
+                        height: 88,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF087F8C).withValues(alpha: 0.25),
+                              blurRadius: 18,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(44),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.person_add_alt_1_rounded,
+                              size: 54,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 16),
                     Text(
                       'Buat Akun Baru',
                       textAlign: TextAlign.center,

@@ -2,6 +2,7 @@ enum TransactionType { income, expense }
 
 class TransactionModel {
   final String id;
+  final String? userId;
   final String title;
   final double amount;
   final TransactionType type;
@@ -11,6 +12,7 @@ class TransactionModel {
 
   TransactionModel({
     required this.id,
+    this.userId,
     required this.title,
     required this.amount,
     required this.type,
@@ -23,6 +25,7 @@ class TransactionModel {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'userId': userId,
       'title': title,
       'amount': amount,
       'type': type.name, // 'income' atau 'expense'
@@ -36,6 +39,7 @@ class TransactionModel {
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
     return TransactionModel(
       id: map['id'],
+      userId: map['userId'],
       title: map['title'],
       amount: (map['amount'] as num).toDouble(),
       type: map['type'] == 'income'

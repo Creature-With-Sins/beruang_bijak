@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-//import '../models/transaction_model.dart';
+import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
+import '../utils/app_formatters.dart';
 import '../widgets/transaction_card.dart';
+
+enum DateFilterPreset { all, today, thisWeek, thisMonth, custom }
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -20,6 +22,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String? _selectedCategory;
   DateTime? _startDate;
   DateTime? _endDate;
+  DateFilterPreset _selectedPreset = DateFilterPreset.all;
 
   @override
   void dispose() {
@@ -34,6 +37,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       context: context,
       firstDate: DateTime(2000),
       lastDate: DateTime(now.year + 5),
+      helpText: 'Pilih rentang tanggal riwayat',
+      saveText: 'Terapkan',
       initialDateRange: _startDate != null && _endDate != null
           ? DateTimeRange(start: _startDate!, end: _endDate!)
           : null,
@@ -43,8 +48,47 @@ class _HistoryScreenState extends State<HistoryScreen> {
       setState(() {
         _startDate = picked.start;
         _endDate = picked.end;
+        _selectedPreset = DateFilterPreset.custom;
+      });
+    } else if (_startDate == null) {
+      setState(() {
+        _selectedPreset = DateFilterPreset.all;
       });
     }
+  }
+
+  void _applyPreset(DateFilterPreset preset) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (preset == DateFilterPreset.custom) {
+      _selectDateRange();
+      return;
+    }
+
+    setState(() {
+      _selectedPreset = preset;
+      switch (preset) {
+        case DateFilterPreset.all:
+          _startDate = null;
+          _endDate = null;
+          break;
+        case DateFilterPreset.today:
+          _startDate = today;
+          _endDate = today;
+          break;
+        case DateFilterPreset.thisWeek:
+          _startDate = today.subtract(const Duration(days: 6));
+          _endDate = today;
+          break;
+        case DateFilterPreset.thisMonth:
+          _startDate = DateTime(now.year, now.month, 1);
+          _endDate = DateTime(now.year, now.month + 1, 0);
+          break;
+        case DateFilterPreset.custom:
+          break;
+      }
+    });
   }
 
   void _resetFilters() {
@@ -54,13 +98,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _selectedCategory = null;
       _startDate = null;
       _endDate = null;
+      _selectedPreset = DateFilterPreset.all;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final transactions =
-        context.watch<TransactionProvider>().transactions;
+    final transactions = context.watch<TransactionProvider>().transactions;
 
     final categories = transactions
         .map((tx) => tx.category)
@@ -96,6 +140,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
+    // Mengelompokkan transaksi per tanggal kalender untuk UX membaca yang rapi
+    final Map<DateTime, List<TransactionModel>> groupedTransactions = {};
+    for (final tx in filteredTransactions) {
+      final dayKey = DateTime(tx.date.year, tx.date.month, tx.date.day);
+      groupedTransactions.putIfAbsent(dayKey, () => []).add(tx);
+    }
+    final sortedDayKeys = groupedTransactions.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    final hasActiveFilter = _searchQuery.isNotEmpty ||
+        _selectedCategory != null ||
+        _selectedPreset != DateFilterPreset.all;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -110,10 +167,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
         actions: [
-          if (_searchQuery.isNotEmpty ||
-              _selectedCategory != null ||
-              _startDate != null ||
-              _endDate != null)
+          if (hasActiveFilter)
             IconButton(
               tooltip: 'Reset filter',
               onPressed: _resetFilters,
@@ -128,9 +182,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
               child: Column(
                 children: [
+                  // Search Box
                   TextField(
                     controller: _searchController,
                     onChanged: (value) {
@@ -158,92 +213,111 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
                       ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 10),
+
+                  // Kategori Dropdown
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFEDF0F4)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _selectedCategory,
+                        hint: const Text('Semua kategori'),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('Semua kategori'),
+                          ),
+                          ...categories.map(
+                            (category) => DropdownMenuItem<String>(
+                              value: category,
+                              child: Text(
+                                category,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCategory = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: const Color(0xFFEDF0F4),
-                            ),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value: _selectedCategory,
-                              hint: const Text('Semua kategori'),
-                              items: [
-                                const DropdownMenuItem<String>(
-                                  value: null,
-                                  child: Text('Semua kategori'),
-                                ),
-                                ...categories.map(
-                                  (category) => DropdownMenuItem<String>(
-                                    value: category,
-                                    child: Text(
-                                      category,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedCategory = value;
-                                });
-                              },
-                            ),
-                          ),
+
+                  // Quick Date Filter Chips
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _DateFilterChip(
+                          label: 'Semua',
+                          isSelected: _selectedPreset == DateFilterPreset.all,
+                          onTap: () => _applyPreset(DateFilterPreset.all),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      IconButton.filledTonal(
-                        tooltip: 'Filter rentang tanggal',
-                        onPressed: _selectDateRange,
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFFDDF3F0),
-                          foregroundColor: const Color(0xFF087F8C),
+                        const SizedBox(width: 8),
+                        _DateFilterChip(
+                          label: 'Hari Ini',
+                          isSelected: _selectedPreset == DateFilterPreset.today,
+                          onTap: () => _applyPreset(DateFilterPreset.today),
                         ),
-                        icon: const Icon(Icons.calendar_month_rounded),
-                      ),
-                    ],
-                  ),
-                  if (_startDate != null && _endDate != null)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          '${DateFormat('dd MMM yyyy', 'id_ID').format(_startDate!)}'
-                          ' - '
-                          '${DateFormat('dd MMM yyyy', 'id_ID').format(_endDate!)}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF087F8C),
-                          ),
+                        const SizedBox(width: 8),
+                        _DateFilterChip(
+                          label: '7 Hari Terakhir',
+                          isSelected:
+                              _selectedPreset == DateFilterPreset.thisWeek,
+                          onTap: () => _applyPreset(DateFilterPreset.thisWeek),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        _DateFilterChip(
+                          label: 'Bulan Ini',
+                          isSelected:
+                              _selectedPreset == DateFilterPreset.thisMonth,
+                          onTap: () => _applyPreset(DateFilterPreset.thisMonth),
+                        ),
+                        const SizedBox(width: 8),
+                        _DateFilterChip(
+                          label: _selectedPreset == DateFilterPreset.custom &&
+                                  _startDate != null &&
+                                  _endDate != null
+                              ? '${AppFormatters.formatDate(_startDate!)} - ${AppFormatters.formatDate(_endDate!)}'
+                              : 'Pilih Tanggal 📅',
+                          isSelected:
+                              _selectedPreset == DateFilterPreset.custom,
+                          onTap: () => _applyPreset(DateFilterPreset.custom),
+                        ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             ),
+
+            // Header Total Transaksi Ditemukan
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               child: Row(
                 children: [
                   const Expanded(
                     child: Text(
-                      'Semua Transaksi',
+                      'Daftar Transaksi',
                       style: TextStyle(
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF172B4D),
                       ),
@@ -259,7 +333,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
+
+            // Grouped Transaction List
             Expanded(
               child: filteredTransactions.isEmpty
                   ? Center(
@@ -283,7 +359,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              'Coba ubah kata kunci atau filter.',
+                              'Coba ubah kata kunci atau periode tanggal.',
                               style: TextStyle(color: Colors.grey),
                               textAlign: TextAlign.center,
                             ),
@@ -293,17 +369,130 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                      itemCount: filteredTransactions.length,
-                      itemBuilder: (context, index) {
-                        final transaction = filteredTransactions[index];
+                      itemCount: sortedDayKeys.length,
+                      itemBuilder: (context, dayIndex) {
+                        final dayKey = sortedDayKeys[dayIndex];
+                        final dayTransactions = groupedTransactions[dayKey]!;
 
-                        return TransactionCard(
-                          transaction: transaction,
+                        final dayExpense = dayTransactions
+                            .where((t) => t.type == TransactionType.expense)
+                            .fold<double>(0, (sum, t) => sum + t.amount);
+                        final dayIncome = dayTransactions
+                            .where((t) => t.type == TransactionType.income)
+                            .fold<double>(0, (sum, t) => sum + t.amount);
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Day Group Header
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 12,
+                                bottom: 8,
+                                left: 4,
+                                right: 4,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    AppFormatters.formatDayHeader(dayKey),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF172B4D),
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      if (dayIncome > 0)
+                                        Text(
+                                          '+${AppFormatters.formatCurrency(dayIncome)}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF16A36A),
+                                          ),
+                                        ),
+                                      if (dayIncome > 0 && dayExpense > 0)
+                                        const Text(
+                                          ' • ',
+                                          style: TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      if (dayExpense > 0)
+                                        Text(
+                                          '-${AppFormatters.formatCurrency(dayExpense)}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFFE05252),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Transactions for this day
+                            ...dayTransactions.map(
+                              (transaction) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: TransactionCard(
+                                  transaction: transaction,
+                                  showDate: false,
+                                ),
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DateFilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _DateFilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF087F8C) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF087F8C)
+                : const Color(0xFFEDF0F4),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? Colors.white : const Color(0xFF172B4D),
+          ),
         ),
       ),
     );
