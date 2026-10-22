@@ -112,6 +112,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         .toList()
       ..sort();
 
+    // Pengaman: Jika kategori terpilih sudah tidak ada di list data, reset ke null
+    if (_selectedCategory != null && !categories.contains(_selectedCategory)) {
+      _selectedCategory = null;
+    }
+
     final filteredTransactions = transactions.where((tx) {
       final matchesSearch =
           tx.title.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -153,15 +158,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _selectedCategory != null ||
         _selectedPreset != DateFilterPreset.all;
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F7FA),
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Riwayat Transaksi',
           style: TextStyle(
-            color: Color(0xFF172B4D),
+            color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 22,
           ),
@@ -171,9 +177,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             IconButton(
               tooltip: 'Reset filter',
               onPressed: _resetFilters,
-              icon: const Icon(
+              icon: Icon(
                 Icons.filter_alt_off_rounded,
-                color: Color(0xFF087F8C),
+                color: theme.colorScheme.primary,
               ),
             ),
         ],
@@ -193,9 +199,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         _searchQuery = value;
                       });
                     },
+                    style: TextStyle(color: theme.colorScheme.onSurface),
                     decoration: InputDecoration(
                       hintText: 'Cari judul transaksi...',
-                      prefixIcon: const Icon(Icons.search_rounded),
+                      hintStyle: TextStyle(
+                        color: isDark ? const Color(0xFF64748B) : Colors.grey.shade400,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600,
+                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               onPressed: () {
@@ -208,10 +221,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             )
                           : null,
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: theme.cardColor,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(
+                          color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 1.5,
+                        ),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -225,19 +253,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.cardColor,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFEDF0F4)),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+                      ),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         isExpanded: true,
                         value: _selectedCategory,
-                        hint: const Text('Semua kategori'),
+                        dropdownColor: theme.cardColor,
+                        style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+                        hint: Text(
+                          'Semua kategori',
+                          style: TextStyle(
+                            color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade700,
+                          ),
+                        ),
                         items: [
-                          const DropdownMenuItem<String>(
+                          DropdownMenuItem<String>(
                             value: null,
-                            child: Text('Semua kategori'),
+                            child: Text(
+                              'Semua kategori',
+                              style: TextStyle(color: theme.colorScheme.onSurface),
+                            ),
                           ),
                           ...categories.map(
                             (category) => DropdownMenuItem<String>(
@@ -245,6 +285,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               child: Text(
                                 category,
                                 overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: theme.colorScheme.onSurface),
                               ),
                             ),
                           ),
@@ -313,13 +354,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Daftar Transaksi',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF172B4D),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -350,11 +391,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               color: Colors.grey.shade400,
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               'Transaksi tidak ditemukan',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
+                                color: theme.colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -398,10 +440,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 children: [
                                   Text(
                                     AppFormatters.formatDayHeader(dayKey),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF172B4D),
+                                      color: theme.colorScheme.onSurface,
                                     ),
                                   ),
                                   Row(
@@ -472,18 +514,21 @@ class _DateFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF087F8C) : Colors.white,
+          color: isSelected ? theme.colorScheme.primary : theme.cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF087F8C)
-                : const Color(0xFFEDF0F4),
+                ? theme.colorScheme.primary
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4)),
           ),
         ),
         child: Text(
@@ -491,7 +536,7 @@ class _DateFilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFF172B4D),
+            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
           ),
         ),
       ),

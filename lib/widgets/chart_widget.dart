@@ -105,6 +105,8 @@ class ChartWidget extends StatelessWidget {
           final entry = entries[index];
           final percentage = entry.value / total * 100;
           final color = _colors[index % _colors.length];
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -125,10 +127,10 @@ class ChartWidget extends StatelessWidget {
                     Expanded(
                       child: Text(
                         entry.key,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF172B4D),
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -142,10 +144,10 @@ class ChartWidget extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       '${percentage.toStringAsFixed(1)}%',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: Color(0xFF172B4D),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -156,7 +158,9 @@ class ChartWidget extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: percentage / 100,
                     minHeight: 5,
-                    backgroundColor: const Color(0xFFF0F3F6),
+                    backgroundColor: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFF0F3F6),
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                   ),
                 ),

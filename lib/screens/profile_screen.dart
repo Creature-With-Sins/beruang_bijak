@@ -105,19 +105,25 @@ class ProfileScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildStatCard({
+  Widget _buildStatCard(
+    BuildContext context, {
     required String title,
     required String value,
     required IconData icon,
     required Color color,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFEDF0F4)),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,10 +140,10 @@ class ProfileScreen extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF172B4D),
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             ),
@@ -147,7 +153,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBudgetCard({
+  Widget _buildBudgetCard(
+    BuildContext context, {
     required String title,
     required String period,
     required double spent,
@@ -155,6 +162,8 @@ class ProfileScreen extends StatelessWidget {
     required VoidCallback onEdit,
     required IconData icon,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final progress = budget > 0 ? (spent / budget).clamp(0.0, 1.0) : 0.0;
     final exceeded = spent > budget;
     final color = exceeded ? const Color(0xFFE57373) : const Color(0xFF16A6A1);
@@ -162,9 +171,11 @@ class ProfileScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEDF0F4)),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,9 +197,10 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     Text(
@@ -201,17 +213,17 @@ class ProfileScreen extends StatelessWidget {
               IconButton(
                 onPressed: onEdit,
                 tooltip: 'Ubah budget',
-                icon: const Icon(Icons.edit_outlined, color: Color(0xFF087F8C)),
+                icon: Icon(Icons.edit_outlined, color: theme.colorScheme.primary),
               ),
             ],
           ),
           const SizedBox(height: 18),
           Text(
             AppFormatters.formatCurrency(spent),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 21,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF172B4D),
+              color: theme.colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
@@ -225,7 +237,9 @@ class ProfileScreen extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: const Color(0xFFEDF0F4),
+              backgroundColor: isDark
+                  ? const Color(0xFF334155)
+                  : const Color(0xFFEDF0F4),
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
@@ -251,6 +265,8 @@ class ProfileScreen extends StatelessWidget {
     final authProvider = context.watch<AuthProvider>();
     final transactions = provider.transactions;
     final now = DateTime.now();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     final username = authProvider.currentUsername ?? 'Pengguna';
 
@@ -274,14 +290,12 @@ class ProfileScreen extends StatelessWidget {
         .fold<double>(0, (sum, tx) => sum + tx.amount);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F7FA),
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Profil & Pengaturan',
           style: TextStyle(
-            color: Color(0xFF172B4D),
+            color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 22,
           ),
@@ -346,10 +360,10 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 26),
-            const Text(
+            Text(
               'Ringkasan Keuangan',
               style: TextStyle(
-                color: Color(0xFF172B4D),
+                color: theme.colorScheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -358,6 +372,7 @@ class ProfileScreen extends StatelessWidget {
             Row(
               children: [
                 _buildStatCard(
+                  context,
                   title: 'Pemasukan',
                   value: AppFormatters.formatCurrency(provider.totalIncome),
                   icon: Icons.south_west_rounded,
@@ -365,6 +380,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 _buildStatCard(
+                  context,
                   title: 'Pengeluaran',
                   value: AppFormatters.formatCurrency(provider.totalExpense),
                   icon: Icons.north_east_rounded,
@@ -376,40 +392,42 @@ class ProfileScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFEDF0F4)),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.receipt_long_rounded,
-                    color: Color(0xFF087F8C),
+                    color: theme.colorScheme.primary,
                     size: 28,
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Total transaksi tercatat',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF172B4D)),
+                      style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
                     ),
                   ),
                   Text(
                     '${transactions.length}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF087F8C),
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 28),
-            const Text(
+            Text(
               'Pengaturan Budget',
               style: TextStyle(
-                color: Color(0xFF172B4D),
+                color: theme.colorScheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -421,6 +439,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             _buildBudgetCard(
+              context,
               title: 'Budget Harian',
               period: 'Pengeluaran hari ini',
               spent: todayExpense,
@@ -430,6 +449,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _buildBudgetCard(
+              context,
               title: 'Budget Bulanan',
               period: AppFormatters.formatMonthYear(now),
               spent: monthlyExpense,

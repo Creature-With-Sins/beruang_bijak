@@ -77,16 +77,16 @@ class _ReportScreenState extends State<ReportScreen> {
     final isSurplus = netCashFlow >= 0;
 
     final monthName = AppFormatters.formatMonthYear(_selectedMonth);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F7FA),
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Laporan Keuangan',
           style: TextStyle(
-            color: Color(0xFF172B4D),
+            color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 22,
           ),
@@ -100,9 +100,11 @@ class _ReportScreenState extends State<ReportScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFEDF0F4)),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -116,22 +118,22 @@ class _ReportScreenState extends State<ReportScreen> {
                     children: [
                       Text(
                         monthName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF172B4D),
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                       if (!isCurrentMonth)
                         GestureDetector(
                           onTap: _resetToCurrentMonth,
-                          child: const Padding(
-                            padding: EdgeInsets.only(top: 2),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 2),
                             child: Text(
                               'Kembali ke Bulan Ini',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFF087F8C),
+                                color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -277,9 +279,11 @@ class _ReportScreenState extends State<ReportScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFEDF0F4)),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+                ),
               ),
               child: ChartWidget(
                 transactions: monthlyTransactions,

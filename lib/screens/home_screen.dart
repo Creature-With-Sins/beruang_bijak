@@ -56,24 +56,24 @@ class _HomeScreenState extends State<HomeScreen> {
     final budgetProgress =
         monthlyBudget > 0 ? (monthlyExpense / monthlyBudget).clamp(0.0, 1.0) : 0.0;
     final isBudgetOver = monthlyExpense > monthlyBudget && monthlyBudget > 0;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F7FA),
         elevation: 0,
         leading: IconButton(
           tooltip: 'Buka menu',
           onPressed: widget.onMenuPressed,
-          icon: const Icon(Icons.menu_rounded, color: Color(0xFF172B4D)),
+          icon: Icon(Icons.menu_rounded, color: theme.colorScheme.onSurface),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Halo, $username 👋',
-              style: const TextStyle(
-                color: Color(0xFF172B4D),
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: const Color(0xFF087F8C).withValues(alpha: 0.3),
+                color: theme.colorScheme.primary.withValues(alpha: 0.3),
                 width: 1.5,
               ),
             ),
@@ -103,11 +103,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 errorBuilder: (_, __, ___) => CircleAvatar(
                   radius: 18,
                   backgroundColor:
-                      const Color(0xFF087F8C).withValues(alpha: 0.15),
+                      theme.colorScheme.primary.withValues(alpha: 0.15),
                   child: Text(
                     username.isNotEmpty ? username[0].toUpperCase() : 'U',
-                    style: const TextStyle(
-                      color: Color(0xFF087F8C),
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -204,9 +204,11 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFEDF0F4)),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,15 +223,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: 18,
                             color: isBudgetOver
                                 ? Colors.red
-                                : const Color(0xFF087F8C),
+                                : theme.colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'Budget Bulanan',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF172B4D),
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -241,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.bold,
                           color: isBudgetOver
                               ? Colors.red
-                              : const Color(0xFF087F8C),
+                              : theme.colorScheme.primary,
                         ),
                       ),
                     ],
@@ -252,7 +254,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: LinearProgressIndicator(
                       value: budgetProgress,
                       minHeight: 7,
-                      backgroundColor: const Color(0xFFEDF0F4),
+                      backgroundColor: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFEDF0F4),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         isBudgetOver ? Colors.red : const Color(0xFF16A6A1),
                       ),
@@ -310,12 +314,12 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Transaksi Terbaru',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF172B4D),
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 Text(
@@ -336,32 +340,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   horizontal: 20,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.cardColor,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFEDF0F4)),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFEDF0F4),
+                  ),
                 ),
                 child: Column(
                   children: [
                     Container(
                       width: 64,
                       height: 64,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE6F5F5),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF134E4A).withValues(alpha: 0.35)
+                            : const Color(0xFFE6F5F5),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.receipt_long_rounded,
                         size: 32,
-                        color: Color(0xFF087F8C),
+                        color: theme.colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Text(
+                    Text(
                       'Belum ada transaksi',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: Color(0xFF172B4D),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -435,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
           );
         },
-        backgroundColor: const Color(0xFF087F8C),
+        backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: const Text('Tambah Transaksi'),
@@ -459,6 +469,9 @@ class _FilterChipTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -466,12 +479,12 @@ class _FilterChipTab extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF087F8C) : Colors.white,
+            color: isSelected ? theme.colorScheme.primary : theme.cardColor,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
-                  ? const Color(0xFF087F8C)
-                  : const Color(0xFFEDF0F4),
+                  ? theme.colorScheme.primary
+                  : (isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4)),
             ),
           ),
           child: Column(
@@ -482,7 +495,7 @@ class _FilterChipTab extends StatelessWidget {
                   fontSize: 12,
                   fontWeight:
                       isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? Colors.white : const Color(0xFF172B4D),
+                  color: isSelected ? Colors.white : theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 2),

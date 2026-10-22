@@ -17,6 +17,8 @@ class TransactionCard extends StatelessWidget {
   });
 
   void _showDetailModal(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isIncome = transaction.type == TransactionType.income;
     final color = isIncome ? const Color(0xFF16A36A) : const Color(0xFFE05252);
     final formattedAmount = AppFormatters.formatCurrency(transaction.amount);
@@ -26,7 +28,7 @@ class TransactionCard extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: theme.cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -42,7 +44,7 @@ class TransactionCard extends StatelessWidget {
                   width: 44,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: isDark ? const Color(0xFF475569) : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -70,10 +72,10 @@ class TransactionCard extends StatelessWidget {
                       children: [
                         Text(
                           transaction.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF172B4D),
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -101,9 +103,12 @@ class TransactionCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              const Divider(color: Color(0xFFEDF0F4)),
+              Divider(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+              ),
               const SizedBox(height: 16),
               _buildDetailRow(
+                context,
                 label: 'Nominal',
                 value: '${isIncome ? '+' : '−'} $formattedAmount',
                 valueColor: color,
@@ -112,11 +117,13 @@ class TransactionCard extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               _buildDetailRow(
+                context,
                 label: 'Kategori',
                 value: transaction.category,
               ),
               const SizedBox(height: 14),
               _buildDetailRow(
+                context,
                 label: 'Tanggal',
                 value: fullDate,
               ),
@@ -124,6 +131,7 @@ class TransactionCard extends StatelessWidget {
                   transaction.note!.trim().isNotEmpty) ...[
                 const SizedBox(height: 14),
                 _buildDetailRow(
+                  context,
                   label: 'Catatan',
                   value: transaction.note!,
                 ),
@@ -139,7 +147,9 @@ class TransactionCard extends StatelessWidget {
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
-                        side: const BorderSide(color: Color(0xFFFFCDD2)),
+                        side: BorderSide(
+                          color: isDark ? Colors.red.shade900 : const Color(0xFFFFCDD2),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -164,7 +174,7 @@ class TransactionCard extends StatelessWidget {
                         );
                       },
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF087F8C),
+                        backgroundColor: theme.colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -184,13 +194,15 @@ class TransactionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow({
+  Widget _buildDetailRow(
+    BuildContext context, {
     required String label,
     required String value,
     Color? valueColor,
     bool isBold = false,
     double valueSize = 14,
   }) {
+    final theme = Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -205,7 +217,7 @@ class TransactionCard extends StatelessWidget {
             style: TextStyle(
               fontSize: valueSize,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-              color: valueColor ?? const Color(0xFF172B4D),
+              color: valueColor ?? theme.colorScheme.onSurface,
             ),
           ),
         ),
@@ -327,12 +339,20 @@ class TransactionCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFEDF0F4)),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFEDF0F4),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.025),
+                  color: Colors.black.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.2
+                        : 0.025,
+                  ),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -366,10 +386,10 @@ class TransactionCard extends StatelessWidget {
                         transaction.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF172B4D),
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -377,7 +397,12 @@ class TransactionCard extends StatelessWidget {
                         subtitleText,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF94A3B8)
+                              : Colors.grey,
+                        ),
                       ),
                       if (transaction.note != null &&
                           transaction.note!.trim().isNotEmpty) ...[
@@ -386,9 +411,11 @@ class TransactionCard extends StatelessWidget {
                           transaction.note!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Colors.blueGrey,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF64748B)
+                                : Colors.blueGrey,
                           ),
                         ),
                       ],

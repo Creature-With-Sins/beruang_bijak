@@ -115,6 +115,7 @@ class TransactionProvider with ChangeNotifier {
     await DatabaseHelper.instance.insertTransaction(newTx);
 
     _transactions.insert(0, newTx);
+    _transactions.sort((a, b) => b.date.compareTo(a.date));
     notifyListeners();
   }
 
@@ -144,6 +145,7 @@ class TransactionProvider with ChangeNotifier {
     final index = _transactions.indexWhere((tx) => tx.id == id);
     if (index != -1) {
       _transactions[index] = updatedTx;
+      _transactions.sort((a, b) => b.date.compareTo(a.date));
       notifyListeners();
     }
   }

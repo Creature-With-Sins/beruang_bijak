@@ -206,19 +206,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final categories = _categories[_typeLabel]!;
     if (!categories.contains(_category)) {
       _category = categories.first;
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: Text(
           _isEditing ? 'Edit Transaksi' : 'Tambah Transaksi',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFFF5F7FA),
       ),
       body: SafeArea(
         child: Form(
@@ -228,10 +227,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             children: [
               Text(
                 _isEditing ? 'Perbarui Transaksi' : 'Catat Keuanganmu',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF172B4D),
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 6),
@@ -239,14 +238,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 _isEditing
                     ? 'Ubah informasi transaksi di bawah ini.'
                     : 'Lengkapi informasi transaksi pemasukan atau pengeluaran.',
-                style: const TextStyle(color: Colors.grey),
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
               ),
               const SizedBox(height: 24),
 
               // Jenis transaksi
-              const Text(
+              Text(
                 'Jenis Transaksi',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 10),
               SegmentedButton<TransactionType>(
@@ -273,15 +277,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 22),
 
               // Judul
-              const Text(
+              Text(
                 'Judul Transaksi',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _titleController,
                 textCapitalization: TextCapitalization.sentences,
+                style: TextStyle(color: theme.colorScheme.onSurface),
                 decoration: _inputDecoration(
+                  context,
                   hint: 'Contoh: Makan siang, Gaji bulanan, dsb.',
                   icon: Icons.edit_note_rounded,
                 ),
@@ -295,9 +304,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 20),
 
               // Nominal
-              const Text(
+              Text(
                 'Nominal (Rp)',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -305,13 +317,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                style: TextStyle(color: theme.colorScheme.onSurface),
                 decoration: _inputDecoration(
+                  context,
                   hint: 'Contoh: 25000',
                   icon: Icons.payments_outlined,
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Nominal wajib diisi.';
+                  }
+                  final parsed = double.tryParse(
+                    value.trim().replaceAll('.', '').replaceAll(',', '.'),
+                  );
+                  if (parsed == null || !parsed.isFinite || parsed <= 0) {
+                    return 'Masukkan nominal angka yang valid dan lebih dari nol.';
                   }
                   return null;
                 },
@@ -333,22 +353,31 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 20),
 
               // Kategori
-              const Text(
+              Text(
                 'Kategori',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 key: ValueKey('${_type}_$_category'),
                 initialValue: _category,
+                dropdownColor: theme.cardColor,
+                style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
                 decoration: _inputDecoration(
+                  context,
                   hint: 'Pilih kategori',
                   icon: Icons.category_outlined,
                 ),
                 items: categories.map((category) {
                   return DropdownMenuItem(
                     value: category,
-                    child: Text(category),
+                    child: Text(
+                      category,
+                      style: TextStyle(color: theme.colorScheme.onSurface),
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -367,9 +396,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Tanggal Transaksi',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         InkWell(
@@ -377,14 +409,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           borderRadius: BorderRadius.circular(14),
                           child: InputDecorator(
                             decoration: _inputDecoration(
+                              context,
                               hint: 'Pilih tanggal',
                               icon: Icons.calendar_month_rounded,
                             ),
                             child: Text(
                               AppFormatters.formatFullDate(_date),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
+                                color: theme.colorScheme.onSurface,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -399,9 +433,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Waktu',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         InkWell(
@@ -409,15 +446,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           borderRadius: BorderRadius.circular(14),
                           child: InputDecorator(
                             decoration: _inputDecoration(
+                              context,
                               hint: 'Jam',
                               icon: Icons.access_time_rounded,
                             ),
                             child: Text(
                               AppFormatters.formatTime(_date),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF087F8C),
+                                color: theme.colorScheme.primary,
                               ),
                             ),
                           ),
@@ -430,16 +468,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 20),
 
               // Catatan opsional
-              const Text(
+              Text(
                 'Catatan (Opsional)',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _noteController,
                 maxLines: 3,
                 textCapitalization: TextCapitalization.sentences,
+                style: TextStyle(color: theme.colorScheme.onSurface),
                 decoration: _inputDecoration(
+                  context,
                   hint: 'Tambahkan catatan jika diperlukan',
                   icon: Icons.notes_rounded,
                 ),
@@ -451,7 +494,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 child: FilledButton.icon(
                   onPressed: _isSaving ? null : _saveTransaction,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF087F8C),
+                    backgroundColor: theme.colorScheme.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -487,26 +530,38 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  InputDecoration _inputDecoration({
+  InputDecoration _inputDecoration(
+    BuildContext context, {
     required String hint,
     required IconData icon,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon, color: const Color(0xFF087F8C)),
+      hintStyle: TextStyle(
+        color: isDark ? const Color(0xFF64748B) : Colors.grey.shade400,
+        fontSize: 14,
+      ),
+      prefixIcon: Icon(icon, color: theme.colorScheme.primary),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE1E7ED)),
+        borderSide: BorderSide(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE1E7ED),
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE1E7ED)),
+        borderSide: BorderSide(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE1E7ED),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF087F8C), width: 1.5),
+        borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
       ),
     );
   }
@@ -520,17 +575,24 @@ class _QuickChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ActionChip(
       label: Text(
         label,
-        style: const TextStyle(
-          color: Color(0xFF087F8C),
+        style: TextStyle(
+          color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF087F8C),
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
       ),
-      backgroundColor: const Color(0xFFE6F5F5),
-      side: const BorderSide(color: Color(0xFFB5E4E0)),
+      backgroundColor: isDark
+          ? const Color(0xFF134E4A).withValues(alpha: 0.35)
+          : const Color(0xFFE6F5F5),
+      side: BorderSide(
+        color: isDark ? const Color(0xFF0F766E) : const Color(0xFFB5E4E0),
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       onPressed: onTap,
     );
