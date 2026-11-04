@@ -6,6 +6,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:beruang_bijak/screens/login_screen.dart';
 
 import 'providers/auth_provider.dart';
+import 'providers/category_provider.dart';
+import 'providers/goal_provider.dart';
 import 'providers/transaction_provider.dart';
 import 'screens/main_navigation_screen.dart';
 
@@ -70,6 +72,9 @@ class _AuthGateState extends State<AuthGate> {
         context
             .read<TransactionProvider>()
             .setCurrentUser(authProvider.currentUsername);
+        context
+            .read<GoalProvider>()
+            .setCurrentUser(authProvider.currentUsername);
       }
     });
 
@@ -92,6 +97,8 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
+        ChangeNotifierProvider(create: (_) => GoalProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const BeruangBijakApp(),

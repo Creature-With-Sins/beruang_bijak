@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../services/csv_export_service.dart';
 import '../services/pdf_report_service.dart';
 import '../utils/app_formatters.dart';
 
@@ -37,6 +38,25 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
     });
   }
 
+  Future<void> _exportCsv({
+    required String username,
+    required List<dynamic> transactions,
+  }) async {
+    final csvBytes = CsvExportService.generateMonthlyReportCsv(
+      month: _selectedMonth,
+      username: username,
+      transactions: transactions.cast(),
+    );
+
+    final csvFileName =
+        'Laporan_Keuangan_${_selectedMonth.year}_${_selectedMonth.month.toString().padLeft(2, '0')}.csv';
+
+    await Printing.sharePdf(
+      bytes: csvBytes,
+      filename: csvFileName,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -54,9 +74,20 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Laporan PDF',
+          'Laporan PDF & Excel',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Export ke CSV / Excel',
+            icon: const Icon(Icons.table_chart_rounded),
+            onPressed: () => _exportCsv(
+              username: username,
+              transactions: monthlyTransactions,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -105,6 +136,59 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
               ),
             ),
 
+            // Banner Export Excel & info
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+              child: InkWell(
+                onTap: () => _exportCsv(
+                  username: username,
+                  transactions: monthlyTransactions,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF134E4A).withValues(alpha: 0.3)
+                        : const Color(0xFFE6F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF0F766E)
+                          : const Color(0xFFB5E4E0),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.table_view_rounded,
+                        color: Color(0xFF087F8C),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Ingin buka di Excel? Ketuk untuk Export CSV',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF087F8C),
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 12,
+                        color: Color(0xFF087F8C),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
             // PDF Viewer / Action Widget
             Expanded(
               child: ClipRRect(
@@ -142,4 +226,3 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
     );
   }
 }
-

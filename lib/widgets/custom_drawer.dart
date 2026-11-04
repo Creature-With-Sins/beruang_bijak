@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../main.dart';
 import '../providers/auth_provider.dart';
+import '../screens/goals_screen.dart';
+import '../screens/manage_categories_screen.dart';
 import '../screens/pdf_preview_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -58,12 +60,19 @@ class CustomDrawer extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             SizedBox(height: 4),
-            Text('• Pencatatan Pemasukan & Pengeluaran\n• Laporan Arus Kas Bulanan & Visualisasi Diagram\n• Cetak & Unduh Laporan PDF\n• Batas Budget Harian & Bulanan\n• Mode Gelap & Terang Menyeluruh',
+            Text(
+              '• Pencatatan Pemasukan & Pengeluaran\n'
+              '• Laporan Arus Kas Bulanan & Visualisasi Diagram\n'
+              '• Cetak & Unduh Laporan PDF & CSV Excel\n'
+              '• 🎯 Celengan Impian (Savings Goals)\n'
+              '• 🏷️ Kelola Kategori Kustom Dinamis\n'
+              '• Batas Budget Harian & Bulanan\n'
+              '• Mode Gelap & Terang Menyeluruh',
               style: TextStyle(fontSize: 12, height: 1.3),
             ),
             SizedBox(height: 12),
             Text(
-              'Versi: 1.0.0+1 (UAS Edition)',
+              'Versi: 1.1.0 (Vibecoded Edition)',
               style: TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ],
@@ -94,7 +103,7 @@ class CustomDrawer extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF087F8C), Color(0xFF16A6A1)],
@@ -102,136 +111,161 @@ class CustomDrawer extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(30),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 58,
-                            height: 58,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => CircleAvatar(
-                              radius: 29,
-                              backgroundColor: Colors.white,
-                              child: Text(
-                                username.isNotEmpty
-                                    ? username[0].toUpperCase()
-                                    : 'B',
-                                style: const TextStyle(
-                                  color: Color(0xFF087F8C),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 22,
-                                ),
-                              ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 54,
+                        height: 54,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => CircleAvatar(
+                          radius: 27,
+                          backgroundColor: Colors.white,
+                          child: Text(
+                            username.isNotEmpty
+                                ? username[0].toUpperCase()
+                                : 'B',
+                            style: const TextStyle(
+                              color: Color(0xFF087F8C),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 22,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Beruang Bijak',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Halo, $username! 👋',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              'Kelola keuangan bijak',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Beruang Bijak',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          'Halo, $username! 👋',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Kelola keuangan bijak',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.dashboard_rounded),
-              title: const Text('Dashboard'),
-              onTap: () {
-                Navigator.pop(context);
-                onDashboardTap();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF087F8C)),
-              title: const Text('Unduh Laporan (PDF)'),
-              subtitle: const Text('Cetak & bagikan laporan bulanan'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PdfPreviewScreen(initialMonth: DateTime.now()),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.dashboard_rounded),
+                    title: const Text('Dashboard'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onDashboardTap();
+                    },
                   ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
-              title: const Text('Tema'),
-              subtitle: Text(isDarkMode ? 'Mode Gelap' : 'Mode Terang'),
-              trailing: Switch(
-                value: isDarkMode,
-                onChanged: (_) {
-                  context.read<ThemeProvider>().toggleTheme();
-                },
+                  ListTile(
+                    leading: const Icon(Icons.savings_rounded, color: Color(0xFF087F8C)),
+                    title: const Text('Celengan Impian'),
+                    subtitle: const Text('Target tabungan & cita-cita'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const GoalsScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.category_rounded, color: Color(0xFF087F8C)),
+                    title: const Text('Kelola Kategori'),
+                    subtitle: const Text('Kategori transaksi dinamis'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ManageCategoriesScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF087F8C)),
+                    title: const Text('Laporan PDF & CSV'),
+                    subtitle: const Text('Cetak & bagikan laporan bulanan'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PdfPreviewScreen(initialMonth: DateTime.now()),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 16),
+                  ListTile(
+                    leading: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
+                    title: const Text('Tema'),
+                    subtitle: Text(isDarkMode ? 'Mode Gelap' : 'Mode Terang'),
+                    trailing: Switch(
+                      value: isDarkMode,
+                      onChanged: (_) {
+                        context.read<ThemeProvider>().toggleTheme();
+                      },
+                    ),
+                    onTap: () {
+                      context.read<ThemeProvider>().toggleTheme();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.info_outline_rounded),
+                    title: const Text('Tentang Aplikasi'),
+                    subtitle: const Text('Informasi fitur & versi'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showAboutDialog(context);
+                    },
+                  ),
+                ],
               ),
-              onTap: () {
-                context.read<ThemeProvider>().toggleTheme();
-              },
             ),
-            ListTile(
-              leading: const Icon(Icons.info_outline_rounded),
-              title: const Text('Tentang Aplikasi'),
-              subtitle: const Text('Informasi fitur & versi'),
-              onTap: () {
-                Navigator.pop(context);
-                _showAboutDialog(context);
-              },
-            ),
-            const Spacer(),
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: ListTile(
                 leading: const Icon(Icons.logout_rounded, color: Colors.red),
                 title: const Text(
@@ -248,10 +282,10 @@ class CustomDrawer extends StatelessWidget {
               ),
             ),
             const Padding(
-              padding: EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.only(bottom: 8),
               child: Text(
-                'Beruang Bijak • v1.0.0+1',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                'Beruang Bijak • v1.1.0',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ),
           ],

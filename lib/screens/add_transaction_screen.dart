@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/transaction_model.dart';
+import '../providers/category_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../utils/app_formatters.dart';
+import 'manage_categories_screen.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final TransactionModel? transactionToEdit;
@@ -26,23 +28,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool _isSaving = false;
 
   bool get _isEditing => widget.transactionToEdit != null;
-
-  final Map<String, List<String>> _categories = {
-    'Pemasukan': ['Gaji', 'Pemasukan', 'Bonus', 'Investasi'],
-    'Pengeluaran': [
-      'Makanan',
-      'Transport',
-      'Belanja',
-      'Hiburan',
-      'Kesehatan',
-      'Pendidikan',
-      'Tagihan',
-      'Lainnya',
-    ],
-  };
-
-  String get _typeLabel =>
-      _type == TransactionType.income ? 'Pemasukan' : 'Pengeluaran';
 
   @override
   void initState() {
@@ -134,6 +119,64 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
+  void _showQuickAddCategoryDialog(BuildContext context) {
+    final textController = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text('Tambah Kategori ${_type == TransactionType.income ? 'Pemasukan' : 'Pengeluaran'}'),
+        content: TextField(
+          controller: textController,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Nama Kategori Baru',
+            hintText: 'Misal: Sedekah, Kursus, Gadget',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF087F8C)),
+            onPressed: () async {
+              final name = textController.text.trim();
+              if (name.isEmpty) return;
+
+              final messenger = ScaffoldMessenger.of(context);
+              final nav = Navigator.of(dialogCtx);
+              final provider = context.read<CategoryProvider>();
+              final success = await provider.addCategory(_type, name);
+
+              nav.pop();
+              if (!mounted) return;
+              if (success) {
+                setState(() => _category = name);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Kategori "$name" berhasil ditambahkan!'),
+                    backgroundColor: const Color(0xFF087F8C),
+                  ),
+                );
+              } else {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Kategori "$name" sudah ada!'),
+                    backgroundColor: Colors.orange.shade800,
+                  ),
+                );
+              }
+            },
+            child: const Text('Tambah'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveTransaction() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -207,9 +250,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final categories = _categories[_typeLabel]!;
+    final categoryProvider = context.watch<CategoryProvider>();
+    final categories = categoryProvider.getCategories(_type);
+
     if (!categories.contains(_category)) {
-      _category = categories.first;
+      _category = categories.isNotEmpty
+          ? categories.first
+          : (_type == TransactionType.income ? 'Gaji' : 'Makanan');
     }
 
     return Scaffold(
@@ -270,7 +317,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 onSelectionChanged: (selection) {
                   setState(() {
                     _type = selection.first;
-                    _category = _categories[_typeLabel]!.first;
+                    final newCats = categoryProvider.getCategories(_type);
+                    _category = newCats.isNotEmpty ? newCats.first : 'Lainnya';
                   });
                 },
               ),
@@ -353,12 +401,47 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 20),
 
               // Kategori
-              Text(
-                'Kategori',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Kategori',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+                        label: const Text('Tambah', style: TextStyle(fontSize: 12)),
+                        onPressed: () => _showQuickAddCategoryDialog(context),
+                      ),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        icon: const Icon(Icons.settings_outlined, size: 15),
+                        label: const Text('Kelola', style: TextStyle(fontSize: 12)),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ManageCategoriesScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(

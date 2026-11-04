@@ -171,7 +171,7 @@ class _ReportScreenState extends State<ReportScreen> {
 
             const SizedBox(height: 10),
 
-            // Tombol Cetak / Export Laporan PDF
+            // Tombol Cetak / Export Laporan PDF & CSV
             OutlinedButton.icon(
               onPressed: () {
                 Navigator.push(
@@ -181,8 +181,8 @@ class _ReportScreenState extends State<ReportScreen> {
                   ),
                 );
               },
-              icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
-              label: Text('Export Laporan PDF ($monthName)'),
+              icon: const Icon(Icons.download_rounded, size: 18),
+              label: Text('Export Laporan PDF & CSV ($monthName)'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: theme.colorScheme.primary,
                 side: BorderSide(

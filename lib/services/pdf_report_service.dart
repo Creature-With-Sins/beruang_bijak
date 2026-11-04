@@ -10,13 +10,12 @@ class PdfReportService {
   PdfReportService._();
 
   static const PdfColor _primaryColor = PdfColor.fromInt(0xFF087F8C);
-  static const PdfColor _secondaryColor = PdfColor.fromInt(0xFF16A6A1);
   static const PdfColor _incomeColor = PdfColor.fromInt(0xFF16A36A);
-  static const PdfColor _expenseColor = PdfColor.fromInt(0xFFE05252);
-  static const PdfColor _textDark = PdfColor.fromInt(0xFF1E293B);
-  static const PdfColor _textMuted = PdfColor.fromInt(0xFF64748B);
-  static const PdfColor _borderLight = PdfColor.fromInt(0xFFE2E8F0);
-  static const PdfColor _bgLight = PdfColor.fromInt(0xFFF8FAFC);
+  static const PdfColor _expenseColor = PdfColor.fromInt(0xFFDC2626);
+  static const PdfColor _textDark = PdfColor.fromInt(0xFF0F172A);
+  static const PdfColor _textMuted = PdfColor.fromInt(0xFF475569);
+  static const PdfColor _borderLight = PdfColor.fromInt(0xFFCBD5E1);
+  static const PdfColor _bgLight = PdfColor.fromInt(0xFFF1F5F9);
 
   /// Menghasilkan file PDF bytes untuk laporan bulanan
   static Future<Uint8List> generateMonthlyReport({
@@ -57,7 +56,7 @@ class PdfReportService {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
+        margin: const pw.EdgeInsets.symmetric(horizontal: 36, vertical: 32),
         header: (context) => _buildHeader(
           monthTitle: monthTitle,
           username: username,
@@ -67,7 +66,7 @@ class PdfReportService {
         build: (context) => [
           pw.SizedBox(height: 14),
 
-          // Ringkasan Keuangan (3 Kartu Ringkas)
+          // Ringkasan Keuangan (3 Kartu Ringkas dengan kontras tinggi)
           pw.Row(
             children: [
               pw.Expanded(
@@ -75,7 +74,8 @@ class PdfReportService {
                   title: 'Total Pemasukan',
                   amount: AppFormatters.formatCurrency(monthlyIncome),
                   accentColor: _incomeColor,
-                  bgColor: const PdfColor.fromInt(0xFFECFDF5),
+                  bgColor: const PdfColor.fromInt(0xFFF0FDF4),
+                  borderColor: const PdfColor.fromInt(0xFF86EFAC),
                 ),
               ),
               pw.SizedBox(width: 10),
@@ -85,6 +85,7 @@ class PdfReportService {
                   amount: AppFormatters.formatCurrency(monthlyExpense),
                   accentColor: _expenseColor,
                   bgColor: const PdfColor.fromInt(0xFFFEF2F2),
+                  borderColor: const PdfColor.fromInt(0xFFFCA5A5),
                 ),
               ),
               pw.SizedBox(width: 10),
@@ -94,6 +95,9 @@ class PdfReportService {
                   amount: '${isSurplus ? '+' : ''}${AppFormatters.formatCurrency(netCashFlow)}',
                   accentColor: isSurplus ? _primaryColor : _expenseColor,
                   bgColor: const PdfColor.fromInt(0xFFF0FDFA),
+                  borderColor: isSurplus
+                      ? const PdfColor.fromInt(0xFF99F6E4)
+                      : const PdfColor.fromInt(0xFFFCA5A5),
                 ),
               ),
             ],
@@ -116,7 +120,7 @@ class PdfReportService {
               sortedExpenseCategories,
               monthlyExpense,
             ),
-            pw.SizedBox(height: 22),
+            pw.SizedBox(height: 20),
           ],
 
           // Rincian Riwayat Transaksi
@@ -161,7 +165,7 @@ class PdfReportService {
       margin: const pw.EdgeInsets.only(bottom: 12),
       decoration: const pw.BoxDecoration(
         border: pw.Border(
-          bottom: pw.BorderSide(color: _primaryColor, width: 2),
+          bottom: pw.BorderSide(color: _primaryColor, width: 2.5),
         ),
       ),
       padding: const pw.EdgeInsets.only(bottom: 12),
@@ -175,10 +179,10 @@ class PdfReportService {
               pw.Text(
                 'BERUANG BIJAK',
                 style: pw.TextStyle(
-                  fontSize: 18,
+                  fontSize: 19,
                   fontWeight: pw.FontWeight.bold,
                   color: _primaryColor,
-                  letterSpacing: 1.1,
+                  letterSpacing: 1.2,
                 ),
               ),
               pw.SizedBox(height: 2),
@@ -190,28 +194,61 @@ class PdfReportService {
                   color: _textDark,
                 ),
               ),
-              pw.SizedBox(height: 2),
-              pw.Text(
-                'Periode: $monthTitle',
-                style: const pw.TextStyle(fontSize: 11, color: _secondaryColor),
+              pw.SizedBox(height: 5),
+              // Badge Periode dengan Kontras Tajam & Mudah Dibaca
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: pw.BoxDecoration(
+                  color: const PdfColor.fromInt(0xFFE6F5F5),
+                  borderRadius: pw.BorderRadius.circular(6),
+                  border: pw.Border.all(
+                    color: const PdfColor.fromInt(0xFFB5E4E0),
+                    width: 0.8,
+                  ),
+                ),
+                child: pw.Text(
+                  'Periode: $monthTitle',
+                  style: pw.TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: pw.FontWeight.bold,
+                    color: _primaryColor,
+                  ),
+                ),
               ),
             ],
           ),
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.end,
             children: [
-              pw.Text(
-                'Pengguna: $username',
-                style: pw.TextStyle(
-                  fontSize: 11,
-                  fontWeight: pw.FontWeight.bold,
-                  color: _textDark,
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: pw.BoxDecoration(
+                  color: _bgLight,
+                  borderRadius: pw.BorderRadius.circular(6),
+                  border: pw.Border.all(color: _borderLight, width: 0.8),
+                ),
+                child: pw.Row(
+                  mainAxisSize: pw.MainAxisSize.min,
+                  children: [
+                    pw.Text(
+                      'Pengguna: ',
+                      style: const pw.TextStyle(fontSize: 10, color: _textMuted),
+                    ),
+                    pw.Text(
+                      username,
+                      style: pw.TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: pw.FontWeight.bold,
+                        color: _textDark,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              pw.SizedBox(height: 2),
+              pw.SizedBox(height: 4),
               pw.Text(
                 'Dicetak: $printDate WIB',
-                style: const pw.TextStyle(fontSize: 9, color: _textMuted),
+                style: const pw.TextStyle(fontSize: 8.5, color: _textMuted),
               ),
             ],
           ),
@@ -233,12 +270,16 @@ class PdfReportService {
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Text(
-            'Beruang Bijak • Solusi Pengelolaan Keuangan Cerdas & Teratur',
+            'Beruang Bijak | Solusi Pengelolaan Keuangan Cerdas & Teratur',
             style: const pw.TextStyle(fontSize: 8, color: _textMuted),
           ),
           pw.Text(
             'Halaman ${context.pageNumber} dari ${context.pagesCount}',
-            style: const pw.TextStyle(fontSize: 8, color: _textMuted),
+            style: pw.TextStyle(
+              fontSize: 8,
+              fontWeight: pw.FontWeight.bold,
+              color: _textMuted,
+            ),
           ),
         ],
       ),
@@ -250,13 +291,14 @@ class PdfReportService {
     required String amount,
     required PdfColor accentColor,
     required PdfColor bgColor,
+    required PdfColor borderColor,
   }) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
         color: bgColor,
         borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: _borderLight, width: 0.8),
+        border: pw.Border.all(color: borderColor, width: 1),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -288,7 +330,7 @@ class PdfReportService {
     double totalExpense,
   ) {
     return pw.Table(
-      border: pw.TableBorder.all(color: _borderLight, width: 0.5),
+      border: pw.TableBorder.all(color: _borderLight, width: 0.6),
       columnWidths: {
         0: const pw.FlexColumnWidth(3),
         1: const pw.FlexColumnWidth(2),
@@ -326,7 +368,7 @@ class PdfReportService {
 
   static pw.Widget _buildTransactionsTable(List<TransactionModel> txs) {
     return pw.Table(
-      border: pw.TableBorder.all(color: _borderLight, width: 0.5),
+      border: pw.TableBorder.all(color: _borderLight, width: 0.6),
       columnWidths: {
         0: const pw.FixedColumnWidth(24),
         1: const pw.FlexColumnWidth(1.8),
@@ -355,6 +397,9 @@ class PdfReportService {
           final dateTimeStr =
               '${DateFormat('dd/MM/yy', 'id_ID').format(tx.date)} ${DateFormat('HH:mm').format(tx.date)}';
 
+          // Gunakan '-' biasa (ASCII 45) agar tidak terjadi missing glyph box pada font PDF
+          final sign = isIncome ? '+' : '-';
+
           return pw.TableRow(
             decoration: pw.BoxDecoration(
               color: index % 2 == 1 ? const PdfColor.fromInt(0xFFFAFAFA) : PdfColors.white,
@@ -372,7 +417,7 @@ class PdfReportService {
                 fontSize: 8,
               ),
               _tableDataCell(
-                '${isIncome ? '+' : '−'} ${AppFormatters.formatCurrency(tx.amount)}',
+                '$sign ${AppFormatters.formatCurrency(tx.amount)}',
                 align: pw.TextAlign.right,
                 color: isIncome ? _incomeColor : _expenseColor,
                 bold: true,
@@ -426,4 +471,3 @@ class PdfReportService {
     );
   }
 }
-
