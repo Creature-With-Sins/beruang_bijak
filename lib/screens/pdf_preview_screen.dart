@@ -1,0 +1,145 @@
+import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/auth_provider.dart';
+import '../providers/transaction_provider.dart';
+import '../services/pdf_report_service.dart';
+import '../utils/app_formatters.dart';
+
+class PdfPreviewScreen extends StatefulWidget {
+  final DateTime initialMonth;
+
+  const PdfPreviewScreen({super.key, required this.initialMonth});
+
+  @override
+  State<PdfPreviewScreen> createState() => _PdfPreviewScreenState();
+}
+
+class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
+  late DateTime _selectedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMonth = DateTime(widget.initialMonth.year, widget.initialMonth.month, 1);
+  }
+
+  void _previousMonth() {
+    setState(() {
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final allTransactions = context.watch<TransactionProvider>().transactions;
+    final username = context.watch<AuthProvider>().currentUsername ?? 'Pengguna';
+
+    final monthlyTransactions = allTransactions.where((tx) {
+      return tx.date.year == _selectedMonth.year && tx.date.month == _selectedMonth.month;
+    }).toList();
+
+    final monthTitle = AppFormatters.formatMonthYear(_selectedMonth);
+    final fileName = 'Laporan_Keuangan_${_selectedMonth.year}_${_selectedMonth.month.toString().padLeft(2, '0')}.pdf';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Laporan PDF',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Month Selector Header
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    onPressed: _previousMonth,
+                    icon: const Icon(Icons.chevron_left_rounded),
+                    tooltip: 'Bulan sebelumnya',
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        monthTitle,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      Text(
+                        '${monthlyTransactions.length} transaksi tercatat',
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: _nextMonth,
+                    icon: const Icon(Icons.chevron_right_rounded),
+                    tooltip: 'Bulan berikutnya',
+                  ),
+                ],
+              ),
+            ),
+
+            // PDF Viewer / Action Widget
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                child: PdfPreview(
+                  key: ValueKey('${_selectedMonth.year}_${_selectedMonth.month}'),
+                  build: (format) => PdfReportService.generateMonthlyReport(
+                    month: _selectedMonth,
+                    username: username,
+                    transactions: monthlyTransactions,
+                  ),
+                  pdfFileName: fileName,
+                  canChangePageFormat: false,
+                  canChangeOrientation: false,
+                  canDebug: false,
+                  loadingWidget: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(color: theme.colorScheme.primary),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Menyiapkan dokumen PDF...',
+                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../main.dart';
 import '../providers/auth_provider.dart';
+import '../screens/pdf_preview_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onDashboardTap;
@@ -31,6 +32,49 @@ class CustomDrawer extends StatelessWidget {
               await context.read<AuthProvider>().logout();
             },
             child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAboutDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.info_outline_rounded, color: Color(0xFF087F8C), size: 36),
+        title: const Text('Tentang Beruang Bijak'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Beruang Bijak adalah aplikasi pencatatan dan pengelolaan keuangan pribadi yang berfokus pada kemudahan, keamanan data lokal (offline-first), serta laporan visual interaktif.',
+              style: TextStyle(fontSize: 13, height: 1.4),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Fitur Utama:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            SizedBox(height: 4),
+            Text('• Pencatatan Pemasukan & Pengeluaran\n• Laporan Arus Kas Bulanan & Visualisasi Diagram\n• Cetak & Unduh Laporan PDF\n• Batas Budget Harian & Bulanan\n• Mode Gelap & Terang Menyeluruh',
+              style: TextStyle(fontSize: 12, height: 1.3),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Versi: 1.0.0+1 (UAS Edition)',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF087F8C),
+            ),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Tutup'),
           ),
         ],
       ),
@@ -148,6 +192,20 @@ class CustomDrawer extends StatelessWidget {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF087F8C)),
+              title: const Text('Unduh Laporan (PDF)'),
+              subtitle: const Text('Cetak & bagikan laporan bulanan'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PdfPreviewScreen(initialMonth: DateTime.now()),
+                  ),
+                );
+              },
+            ),
+            ListTile(
               leading: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
               title: const Text('Tema'),
               subtitle: Text(isDarkMode ? 'Mode Gelap' : 'Mode Terang'),
@@ -159,6 +217,15 @@ class CustomDrawer extends StatelessWidget {
               ),
               onTap: () {
                 context.read<ThemeProvider>().toggleTheme();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline_rounded),
+              title: const Text('Tentang Aplikasi'),
+              subtitle: const Text('Informasi fitur & versi'),
+              onTap: () {
+                Navigator.pop(context);
+                _showAboutDialog(context);
               },
             ),
             const Spacer(),
@@ -183,7 +250,7 @@ class CustomDrawer extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.only(bottom: 12),
               child: Text(
-                'Beruang Bijak • v1.0.0',
+                'Beruang Bijak • v1.0.0+1',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),

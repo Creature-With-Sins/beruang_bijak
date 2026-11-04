@@ -5,6 +5,7 @@ import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
 import '../utils/app_formatters.dart';
 import '../widgets/chart_widget.dart';
+import 'pdf_preview_screen.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -91,6 +92,24 @@ class _ReportScreenState extends State<ReportScreen> {
             fontSize: 22,
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Cetak Laporan PDF',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PdfPreviewScreen(initialMonth: _selectedMonth),
+                ),
+              );
+            },
+            icon: Icon(
+              Icons.picture_as_pdf_rounded,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -147,6 +166,34 @@ class _ReportScreenState extends State<ReportScreen> {
                     tooltip: 'Bulan berikutnya',
                   ),
                 ],
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Tombol Cetak / Export Laporan PDF
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PdfPreviewScreen(initialMonth: _selectedMonth),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+              label: Text('Export Laporan PDF ($monthName)'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.colorScheme.primary,
+                side: BorderSide(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFF087F8C).withValues(alpha: 0.35),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
 
