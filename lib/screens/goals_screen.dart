@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/goal_model.dart';
+import '../models/transaction_model.dart';
 import '../providers/goal_provider.dart';
+import '../providers/transaction_provider.dart';
 import '../utils/app_formatters.dart';
 
 class GoalsScreen extends StatefulWidget {
@@ -15,7 +17,7 @@ class GoalsScreen extends StatefulWidget {
 class _GoalsScreenState extends State<GoalsScreen> {
   String _filter = 'all'; // 'all', 'active', 'completed'
 
-  void _showAddEditGoalDialog({GoalModel? editGoal}) {
+  void _showAddEditGoalSheet({GoalModel? editGoal}) {
     final titleController = TextEditingController(text: editGoal?.title ?? '');
     final targetController = TextEditingController(
       text: editGoal != null
@@ -34,6 +36,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final noteController = TextEditingController(text: editGoal?.note ?? '');
     DateTime? selectedDate = editGoal?.targetDate;
     String selectedCategory = editGoal?.category ?? 'Elektronik';
+    bool recordAsExpense = editGoal == null; // default true for new goal initial deposit
 
     const categories = [
       'Elektronik',
@@ -46,33 +49,70 @@ class _GoalsScreenState extends State<GoalsScreen> {
       'Lainnya',
     ];
 
-    showDialog<void>(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (dialogCtx) {
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
+          builder: (context, setSheetState) {
+            final theme = Theme.of(context);
+            final isDark = theme.brightness == Brightness.dark;
             final isEditing = editGoal != null;
 
-            return AlertDialog(
-              title: Row(
-                children: [
-                  const Icon(Icons.savings_rounded, color: Color(0xFF087F8C)),
-                  const SizedBox(width: 8),
-                  Text(isEditing ? 'Edit Celengan' : 'Celengan Impian Baru'),
-                ],
+            return Container(
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              content: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 12,
+                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.savings_rounded, color: Color(0xFF087F8C), size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              isEditing ? 'Edit Celengan' : 'Celengan Impian Baru',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(sheetCtx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: titleController,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
                         labelText: 'Nama Impian',
-                        hintText: 'Misal: Beli Laptop Baru',
+                        hintText: 'Misal: Beli Laptop Baru, Liburan ke Bali',
                         filled: true,
                         fillColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
                         border: OutlineInputBorder(
@@ -113,7 +153,25 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    if (!isEditing) ...[
+                      const SizedBox(height: 6),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text(
+                          'Catat setoran awal di kas utama',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: const Text(
+                          'Otomatis catat pengeluaran (Kategori: Investasi)',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                        value: recordAsExpense,
+                        onChanged: (val) {
+                          setSheetState(() => recordAsExpense = val);
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       initialValue: selectedCategory,
                       decoration: InputDecoration(
@@ -130,7 +188,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) {
-                          setDialogState(() => selectedCategory = val);
+                          setSheetState(() => selectedCategory = val);
                         }
                       },
                     ),
@@ -146,7 +204,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           helpText: 'Pilih target waktu tercapai',
                         );
                         if (picked != null) {
-                          setDialogState(() => selectedDate = picked);
+                          setSheetState(() => selectedDate = picked);
                         }
                       },
                       child: Container(
@@ -188,63 +246,81 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF087F8C),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () async {
+                          final title = titleController.text.trim();
+                          final target = double.tryParse(targetController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+                          final saved = double.tryParse(initialController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+
+                          if (title.isEmpty || target <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Nama dan target tabungan harus diisi dengan benar.')),
+                            );
+                            return;
+                          }
+
+                          final messenger = ScaffoldMessenger.of(context);
+                          final nav = Navigator.of(sheetCtx);
+                          final goalProv = context.read<GoalProvider>();
+                          final txProv = context.read<TransactionProvider>();
+
+                          if (isEditing) {
+                            final updated = editGoal.copyWith(
+                              title: title,
+                              targetAmount: target,
+                              savedAmount: saved,
+                              category: selectedCategory,
+                              targetDate: selectedDate,
+                              note: noteController.text.trim(),
+                            );
+                            await goalProv.updateGoal(updated);
+                          } else {
+                            await goalProv.addGoal(
+                              title: title,
+                              targetAmount: target,
+                              initialAmount: saved,
+                              category: selectedCategory,
+                              targetDate: selectedDate,
+                              note: noteController.text.trim(),
+                            );
+
+                            if (saved > 0 && recordAsExpense) {
+                              await txProv.addTransaction(
+                                title: 'Setoran Awal: $title',
+                                amount: saved,
+                                type: TransactionType.expense,
+                                category: 'Investasi',
+                                date: DateTime.now(),
+                                note: 'Alokasi ke Celengan Impian ($title)',
+                              );
+                            }
+                          }
+
+                          nav.pop();
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(isEditing ? 'Celengan berhasil diperbarui!' : 'Celengan impian berhasil dibuat! 🎯'),
+                              backgroundColor: const Color(0xFF087F8C),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          isEditing ? 'Simpan Perubahan' : 'Mulai Menabung Sekarang',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx),
-                  child: const Text('Batal'),
-                ),
-                FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF087F8C)),
-                  onPressed: () async {
-                    final title = titleController.text.trim();
-                    final target = double.tryParse(targetController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
-                    final saved = double.tryParse(initialController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
-
-                    if (title.isEmpty || target <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nama dan target tabungan harus diisi dengan benar.')),
-                      );
-                      return;
-                    }
-
-                    final messenger = ScaffoldMessenger.of(context);
-                    final nav = Navigator.of(dialogCtx);
-                    final provider = context.read<GoalProvider>();
-                    if (isEditing) {
-                      final updated = editGoal.copyWith(
-                        title: title,
-                        targetAmount: target,
-                        savedAmount: saved,
-                        category: selectedCategory,
-                        targetDate: selectedDate,
-                        note: noteController.text.trim(),
-                      );
-                      await provider.updateGoal(updated);
-                    } else {
-                      await provider.addGoal(
-                        title: title,
-                        targetAmount: target,
-                        initialAmount: saved,
-                        category: selectedCategory,
-                        targetDate: selectedDate,
-                        note: noteController.text.trim(),
-                      );
-                    }
-
-                    nav.pop();
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(isEditing ? 'Celengan berhasil diperbarui!' : 'Celengan impian berhasil dibuat! 🎯'),
-                        backgroundColor: const Color(0xFF087F8C),
-                      ),
-                    );
-                  },
-                  child: Text(isEditing ? 'Simpan' : 'Mulai Menabung'),
-                ),
-              ],
             );
           },
         );
@@ -252,143 +328,326 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
-  void _showDepositDialog(GoalModel goal) {
+  void _showDepositSheet(GoalModel goal) {
     final amountController = TextEditingController();
-    showDialog<void>(
+    bool recordAsExpense = true;
+
+    showModalBottomSheet<void>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF16A36A), size: 36),
-        title: Text('Nabung untuk "${goal.title}"'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Terkumpul saat ini: ${AppFormatters.formatCurrency(goal.savedAmount)}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Jumlah Setoran (Rp)',
-                hintText: 'Misal: 50000',
-                prefixText: 'Rp ',
-                border: OutlineInputBorder(),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final theme = Theme.of(context);
+            final isDark = theme.brightness == Brightness.dark;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              children: [20000, 50000, 100000, 200000].map((preset) {
-                return ActionChip(
-                  label: Text('+${AppFormatters.formatCurrency(preset)}'),
-                  onPressed: () {
-                    final curr = double.tryParse(amountController.text.replaceAll('.', '')) ?? 0;
-                    amountController.text = (curr + preset).toInt().toString();
-                  },
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A36A)),
-            onPressed: () async {
-              final val = double.tryParse(amountController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
-              if (val <= 0) return;
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 12,
+                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF16A36A), size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Nabung: ${goal.title}',
+                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(sheetCtx),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'Terkumpul saat ini: ${AppFormatters.formatCurrency(goal.savedAmount)} dari ${AppFormatters.formatCurrency(goal.targetAmount)}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: 'Nominal Setoran (Rp)',
+                        hintText: 'Misal: 50000',
+                        prefixText: 'Rp ',
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [20000, 50000, 100000, 200000, 500000].map((preset) {
+                        return ActionChip(
+                          label: Text('+${AppFormatters.formatCurrency(preset)}'),
+                          onPressed: () {
+                            final curr = double.tryParse(amountController.text.replaceAll('.', '')) ?? 0;
+                            amountController.text = (curr + preset).toInt().toString();
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Kurangi saldo kas utama otomatis',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+                      ),
+                      subtitle: const Text(
+                        'Dicatat sebagai transaksi pengeluaran (Kategori: Investasi)',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                      value: recordAsExpense,
+                      onChanged: (val) {
+                        setSheetState(() => recordAsExpense = val);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A36A),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () async {
+                          final val = double.tryParse(amountController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+                          if (val <= 0) return;
 
-              final messenger = ScaffoldMessenger.of(context);
-              final nav = Navigator.of(dialogCtx);
-              await context.read<GoalProvider>().deposit(goal.id, val);
-              nav.pop();
-              final updatedSaved = goal.savedAmount + val;
-              final isNowCompleted = updatedSaved >= goal.targetAmount;
+                          final messenger = ScaffoldMessenger.of(context);
+                          final nav = Navigator.of(sheetCtx);
+                          final goalProv = context.read<GoalProvider>();
+                          final txProv = context.read<TransactionProvider>();
 
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isNowCompleted
-                        ? '🎉 SELAMAT! Impian "${goal.title}" berhasil tercapai 100%!'
-                        : 'Setoran ${AppFormatters.formatCurrency(val)} berhasil ditambahkan! 🪙',
-                  ),
-                  backgroundColor: isNowCompleted ? const Color(0xFF087F8C) : const Color(0xFF16A36A),
+                          await goalProv.deposit(goal.id, val);
+
+                          if (recordAsExpense) {
+                            await txProv.addTransaction(
+                              title: 'Nabung: ${goal.title}',
+                              amount: val,
+                              type: TransactionType.expense,
+                              category: 'Investasi',
+                              date: DateTime.now(),
+                              note: 'Alokasi ke Celengan Impian (${goal.title})',
+                            );
+                          }
+
+                          nav.pop();
+                          final updatedSaved = goal.savedAmount + val;
+                          final isNowCompleted = updatedSaved >= goal.targetAmount;
+
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                isNowCompleted
+                                    ? '🎉 SELAMAT! Impian "${goal.title}" berhasil tercapai 100%!'
+                                    : 'Setoran ${AppFormatters.formatCurrency(val)} berhasil ditambahkan! 🪙',
+                              ),
+                              backgroundColor: isNowCompleted ? const Color(0xFF087F8C) : const Color(0xFF16A36A),
+                            ),
+                          );
+                        },
+                        child: const Text('Setor Tabungan Sekarang', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
-            child: const Text('Setor'),
-          ),
-        ],
-      ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
-  void _showWithdrawDialog(GoalModel goal) {
+  void _showWithdrawSheet(GoalModel goal) {
     final amountController = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.orange, size: 36),
-        title: Text('Tarik Celengan "${goal.title}"'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Saldo celengan saat ini: ${AppFormatters.formatCurrency(goal.savedAmount)}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Jumlah Penarikan (Rp)',
-                prefixText: 'Rp ',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade800),
-            onPressed: () async {
-              final val = double.tryParse(amountController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
-              if (val <= 0) return;
-              if (val > goal.savedAmount) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Nominal penarikan melebihi saldo celengan.')),
-                );
-                return;
-              }
+    bool recordAsIncome = true;
 
-              final messenger = ScaffoldMessenger.of(context);
-              final nav = Navigator.of(dialogCtx);
-              await context.read<GoalProvider>().withdraw(goal.id, val);
-              nav.pop();
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text('Penarikan ${AppFormatters.formatCurrency(val)} berhasil dilakukan.'),
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final theme = Theme.of(context);
+            final isDark = theme.brightness == Brightness.dark;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 12,
+                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.remove_circle_outline_rounded, color: Colors.orange, size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Tarik: ${goal.title}',
+                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(sheetCtx),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'Saldo celengan saat ini: ${AppFormatters.formatCurrency(goal.savedAmount)}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: 'Nominal Penarikan (Rp)',
+                        prefixText: 'Rp ',
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Tambah kembali ke saldo kas utama',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+                      ),
+                      subtitle: const Text(
+                        'Dicatat sebagai transaksi pemasukan (Kategori: Pemasukan)',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                      value: recordAsIncome,
+                      onChanged: (val) {
+                        setSheetState(() => recordAsIncome = val);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.orange.shade800,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: () async {
+                          final val = double.tryParse(amountController.text.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+                          if (val <= 0) return;
+                          if (val > goal.savedAmount) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Nominal penarikan melebihi saldo celengan.')),
+                            );
+                            return;
+                          }
+
+                          final messenger = ScaffoldMessenger.of(context);
+                          final nav = Navigator.of(sheetCtx);
+                          final goalProv = context.read<GoalProvider>();
+                          final txProv = context.read<TransactionProvider>();
+
+                          await goalProv.withdraw(goal.id, val);
+
+                          if (recordAsIncome) {
+                            await txProv.addTransaction(
+                              title: 'Tarik Tabungan: ${goal.title}',
+                              amount: val,
+                              type: TransactionType.income,
+                              category: 'Pemasukan',
+                              date: DateTime.now(),
+                              note: 'Penarikan dari Celengan Impian (${goal.title})',
+                            );
+                          }
+
+                          nav.pop();
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text('Penarikan ${AppFormatters.formatCurrency(val)} berhasil dilakukan.'),
+                            ),
+                          );
+                        },
+                        child: const Text('Tarik Saldo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
-            child: const Text('Tarik Saldo'),
-          ),
-        ],
-      ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -583,7 +842,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                             icon: const Icon(Icons.more_vert_rounded, size: 20),
                             onSelected: (val) {
                               if (val == 'edit') {
-                                _showAddEditGoalDialog(editGoal: goal);
+                                _showAddEditGoalSheet(editGoal: goal);
                               } else if (val == 'delete') {
                                 _confirmDeleteGoal(goal);
                               }
@@ -719,7 +978,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     ),
                     icon: const Icon(Icons.remove_circle_outline_rounded, size: 16),
                     label: const Text('Tarik'),
-                    onPressed: goal.savedAmount <= 0 ? null : () => _showWithdrawDialog(goal),
+                    onPressed: goal.savedAmount <= 0 ? null : () => _showWithdrawSheet(goal),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -732,7 +991,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     ),
                     icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
                     label: const Text('+ Tabung'),
-                    onPressed: () => _showDepositDialog(goal),
+                    onPressed: () => _showDepositSheet(goal),
                   ),
                 ),
               ],
@@ -765,28 +1024,46 @@ class _GoalsScreenState extends State<GoalsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           children: [
             _buildSummaryCard(goalProvider, isDark),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+
+            // Header Daftar Impian dengan Filter Responsif Penuh (Tanpa Offset)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   'Daftar Impian',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'all', label: Text('Semua')),
-                    ButtonSegment(value: 'active', label: Text('Aktif')),
-                    ButtonSegment(value: 'completed', label: Text('Selesai')),
-                  ],
-                  selected: {_filter},
-                  onSelectionChanged: (val) {
-                    setState(() => _filter = val.first);
-                  },
+                Text(
+                  '${displayedGoals.length} Impian',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+
+            // Segmented filter full-width agar tidak pernah terpotong di tepi layar
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<String>(
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                ),
+                segments: const [
+                  ButtonSegment(value: 'all', label: Text('Semua')),
+                  ButtonSegment(value: 'active', label: Text('Aktif')),
+                  ButtonSegment(value: 'completed', label: Text('Selesai')),
+                ],
+                selected: {_filter},
+                onSelectionChanged: (val) {
+                  setState(() => _filter = val.first);
+                },
+              ),
+            ),
+            const SizedBox(height: 14),
+
             if (displayedGoals.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 48),
@@ -826,9 +1103,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: const Text('Buat Celengan'),
-        onPressed: () => _showAddEditGoalDialog(),
+        onPressed: () => _showAddEditGoalSheet(),
       ),
     );
   }
 }
-

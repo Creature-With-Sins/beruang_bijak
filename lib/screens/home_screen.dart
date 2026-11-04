@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../models/transaction_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/goal_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../utils/app_formatters.dart';
 import '../widgets/transaction_card.dart';
 import 'add_transaction_screen.dart';
+import 'goals_screen.dart';
 import 'history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -276,6 +278,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
+            // Celengan Impian Banner
+            _buildGoalsSummaryBanner(context, isDark),
+
             const SizedBox(height: 24),
 
             // Quick Filter Tabs
@@ -449,6 +454,151 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: const Text('Tambah Transaksi'),
+      ),
+    );
+  }
+
+  Widget _buildGoalsSummaryBanner(BuildContext context, bool isDark) {
+    final goalProvider = context.watch<GoalProvider>();
+    final goals = goalProvider.goals;
+    final theme = Theme.of(context);
+
+    if (goals.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.only(top: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+          ),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: isDark ? const Color(0xFF0F3D3E) : const Color(0xFFE6F5F5),
+              child: const Icon(Icons.savings_rounded, color: Color(0xFF087F8C), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Punya Cita-cita / Impian?',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const Text(
+                    'Mulai tabung di Celengan Impian',
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const GoalsScreen()),
+                );
+              },
+              child: const Text('Buat Target', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final totalTarget = goalProvider.totalTargetAmount;
+    final totalSaved = goalProvider.totalSavedAmount;
+    final progress = goalProvider.overallProgress;
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const GoalsScreen()),
+        );
+      },
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        margin: const EdgeInsets.only(top: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.savings_rounded, color: Color(0xFF087F8C), size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Celengan Impian',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text(
+                      '${(progress * 100).toStringAsFixed(0)}% terkumpul',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF087F8C),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 7,
+                backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF087F8C)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${AppFormatters.formatCurrency(totalSaved)} dari ${AppFormatters.formatCurrency(totalTarget)}',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+                Text(
+                  '${goalProvider.activeGoalsCount} Aktif • ${goalProvider.completedGoalsCount} Tercapai',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF16A36A)),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
