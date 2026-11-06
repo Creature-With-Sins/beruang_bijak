@@ -11,6 +11,7 @@ class CategoryProvider extends ChangeNotifier {
     'Pemasukan',
     'Bonus',
     'Investasi',
+    'Tabungan',
   ];
 
   static const List<String> defaultExpenseCategories = [
@@ -21,6 +22,7 @@ class CategoryProvider extends ChangeNotifier {
     'Kesehatan',
     'Pendidikan',
     'Tagihan',
+    'Tabungan',
     'Lainnya',
   ];
 

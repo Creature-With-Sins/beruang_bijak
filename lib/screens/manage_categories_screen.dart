@@ -196,6 +196,9 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen>
         return Icons.card_giftcard_rounded;
       case 'investasi':
         return Icons.trending_up_rounded;
+      case 'tabungan':
+      case 'celengan':
+        return Icons.savings_rounded;
       case 'pemasukan':
         return Icons.payments_rounded;
       default:

@@ -473,6 +473,16 @@ class TransactionCard extends StatelessWidget {
       case 'tagihan':
         return Icons.receipt_long_rounded;
 
+      case 'tabungan':
+      case 'celengan':
+        return Icons.savings_rounded;
+
+      case 'investasi':
+        return Icons.trending_up_rounded;
+
+      case 'bonus':
+        return Icons.card_giftcard_rounded;
+
       default:
         return Icons.category_rounded;
     }

@@ -26,17 +26,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
               : editGoal.targetAmount.toString())
           : '',
     );
-    final initialController = TextEditingController(
-      text: editGoal != null
-          ? (editGoal.savedAmount % 1 == 0
-              ? editGoal.savedAmount.toInt().toString()
-              : editGoal.savedAmount.toString())
-          : '',
-    );
+    final initialController = TextEditingController();
     final noteController = TextEditingController(text: editGoal?.note ?? '');
     DateTime? selectedDate = editGoal?.targetDate;
     String selectedCategory = editGoal?.category ?? 'Elektronik';
-    bool recordAsExpense = editGoal == null; // default true for new goal initial deposit
+    bool recordAsExpense = true; // default true for new goal initial deposit
 
     const categories = [
       'Elektronik',
@@ -138,37 +132,65 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: initialController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: isEditing ? 'Jumlah Terkumpul Saat Ini (Rp)' : 'Setoran Awal (Opsional)',
-                        hintText: '0',
-                        prefixText: 'Rp ',
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                    if (!isEditing) ...[
+                      TextField(
+                        controller: initialController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Setoran Awal (Opsional)',
+                          hintText: '0',
+                          prefixText: 'Rp ',
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
-                    ),
-                    if (!isEditing) ...[
                       const SizedBox(height: 6),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         title: const Text(
-                          'Catat setoran awal di kas utama',
+                          'Potong setoran awal dari kas utama',
                           style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
                         ),
                         subtitle: const Text(
-                          'Otomatis catat pengeluaran (Kategori: Investasi)',
+                          'Otomatis dicatat sebagai pengeluaran (Kategori: Tabungan)',
                           style: TextStyle(fontSize: 11, color: Colors.grey),
                         ),
                         value: recordAsExpense,
                         onChanged: (val) {
                           setSheetState(() => recordAsExpense = val);
                         },
+                      ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Saldo Terkumpul Saat Ini', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  AppFormatters.formatCurrency(editGoal.savedAmount),
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF16A36A)),
+                                ),
+                              ],
+                            ),
+                            const Text(
+                              'Gunakan tombol Tabung / Tarik',
+                              style: TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                     const SizedBox(height: 10),
@@ -276,7 +298,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                             final updated = editGoal.copyWith(
                               title: title,
                               targetAmount: target,
-                              savedAmount: saved,
+                              savedAmount: editGoal.savedAmount, // Pertahankan saldo yang sudah ada
                               category: selectedCategory,
                               targetDate: selectedDate,
                               note: noteController.text.trim(),
@@ -297,7 +319,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                 title: 'Setoran Awal: $title',
                                 amount: saved,
                                 type: TransactionType.expense,
-                                category: 'Investasi',
+                                category: 'Tabungan',
                                 date: DateTime.now(),
                                 note: 'Alokasi ke Celengan Impian ($title)',
                               );
@@ -331,6 +353,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   void _showDepositSheet(GoalModel goal) {
     final amountController = TextEditingController();
     bool recordAsExpense = true;
+    final remaining = goal.remainingAmount;
 
     showModalBottomSheet<void>(
       context: context,
@@ -413,25 +436,35 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: [20000, 50000, 100000, 200000, 500000].map((preset) {
-                        return ActionChip(
-                          label: Text('+${AppFormatters.formatCurrency(preset)}'),
-                          onPressed: () {
-                            final curr = double.tryParse(amountController.text.replaceAll('.', '')) ?? 0;
-                            amountController.text = (curr + preset).toInt().toString();
-                          },
-                        );
-                      }).toList(),
+                      children: [
+                        ...[20000, 50000, 100000, 200000, 500000].map((preset) {
+                          return ActionChip(
+                            label: Text('+${AppFormatters.formatCurrency(preset)}'),
+                            onPressed: () {
+                              final curr = double.tryParse(amountController.text.replaceAll('.', '')) ?? 0;
+                              amountController.text = (curr + preset).toInt().toString();
+                            },
+                          );
+                        }),
+                        if (remaining > 0)
+                          ActionChip(
+                            avatar: const Icon(Icons.flag_rounded, size: 14),
+                            label: Text('Sisa Target (${AppFormatters.formatCurrency(remaining)})'),
+                            onPressed: () {
+                              amountController.text = remaining.toInt().toString();
+                            },
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text(
-                        'Kurangi saldo kas utama otomatis',
+                        'Potong saldo kas utama otomatis',
                         style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
                       ),
                       subtitle: const Text(
-                        'Dicatat sebagai transaksi pengeluaran (Kategori: Investasi)',
+                        'Otomatis dicatat sebagai pengeluaran (Kategori: Tabungan)',
                         style: TextStyle(fontSize: 11, color: Colors.grey),
                       ),
                       value: recordAsExpense,
@@ -464,7 +497,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               title: 'Nabung: ${goal.title}',
                               amount: val,
                               type: TransactionType.expense,
-                              category: 'Investasi',
+                              category: 'Tabungan',
                               date: DateTime.now(),
                               note: 'Alokasi ke Celengan Impian (${goal.title})',
                             );
@@ -479,7 +512,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               content: Text(
                                 isNowCompleted
                                     ? '🎉 SELAMAT! Impian "${goal.title}" berhasil tercapai 100%!'
-                                    : 'Setoran ${AppFormatters.formatCurrency(val)} berhasil ditambahkan! 🪙',
+                                    : recordAsExpense
+                                        ? 'Setoran ${AppFormatters.formatCurrency(val)} berhasil! Saldo kas utama telah terpotong 🪙'
+                                        : 'Setoran ${AppFormatters.formatCurrency(val)} berhasil ditambahkan ke celengan 🪙',
                               ),
                               backgroundColor: isNowCompleted ? const Color(0xFF087F8C) : const Color(0xFF16A36A),
                             ),
@@ -579,14 +614,43 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ...[20000, 50000, 100000, 200000].where((p) => p <= goal.savedAmount).map((preset) {
+                          return ActionChip(
+                            label: Text('+${AppFormatters.formatCurrency(preset)}'),
+                            onPressed: () {
+                              final curr = double.tryParse(amountController.text.replaceAll('.', '')) ?? 0;
+                              final nextVal = curr + preset;
+                              if (nextVal <= goal.savedAmount) {
+                                amountController.text = nextVal.toInt().toString();
+                              } else {
+                                amountController.text = goal.savedAmount.toInt().toString();
+                              }
+                            },
+                          );
+                        }),
+                        if (goal.savedAmount > 0)
+                          ActionChip(
+                            avatar: const Icon(Icons.all_out_rounded, size: 14),
+                            label: Text('Tarik Semua (${AppFormatters.formatCurrency(goal.savedAmount)})'),
+                            onPressed: () {
+                              amountController.text = goal.savedAmount.toInt().toString();
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text(
-                        'Tambah kembali ke saldo kas utama',
+                        'Kembalikan saldo ke kas utama',
                         style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
                       ),
                       subtitle: const Text(
-                        'Dicatat sebagai transaksi pemasukan (Kategori: Pemasukan)',
+                        'Otomatis dicatat sebagai pemasukan balik (Kategori: Tabungan)',
                         style: TextStyle(fontSize: 11, color: Colors.grey),
                       ),
                       value: recordAsIncome,
@@ -622,10 +686,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
                           if (recordAsIncome) {
                             await txProv.addTransaction(
-                              title: 'Tarik Tabungan: ${goal.title}',
+                              title: 'Tarik Celengan: ${goal.title}',
                               amount: val,
                               type: TransactionType.income,
-                              category: 'Pemasukan',
+                              category: 'Tabungan',
                               date: DateTime.now(),
                               note: 'Penarikan dari Celengan Impian (${goal.title})',
                             );
@@ -634,7 +698,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           nav.pop();
                           messenger.showSnackBar(
                             SnackBar(
-                              content: Text('Penarikan ${AppFormatters.formatCurrency(val)} berhasil dilakukan.'),
+                              content: Text(
+                                recordAsIncome
+                                    ? 'Penarikan ${AppFormatters.formatCurrency(val)} berhasil! Saldo sebesar ${AppFormatters.formatCurrency(val)} telah dikembalikan ke Kas Utama Anda 💵'
+                                    : 'Penarikan ${AppFormatters.formatCurrency(val)} berhasil (Mode Standalone: Saldo kas utama tidak berubah)',
+                              ),
+                              backgroundColor: const Color(0xFF087F8C),
                             ),
                           );
                         },
@@ -778,6 +847,65 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKasUtamaInfo(TransactionProvider txProv, bool isDark) {
+    final balance = txProv.totalBalance;
+    final isPositive = balance >= 0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFEDF0F4),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF087F8C).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  size: 18,
+                  color: Color(0xFF087F8C),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Saldo Kas Utama',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Dompet aktif saat ini',
+                    style: TextStyle(fontSize: 10.5, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Text(
+            AppFormatters.formatCurrency(balance),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: isPositive ? const Color(0xFF16A36A) : const Color(0xFFDC2626),
+            ),
           ),
         ],
       ),
@@ -1005,6 +1133,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   @override
   Widget build(BuildContext context) {
     final goalProvider = context.watch<GoalProvider>();
+    final txProvider = context.watch<TransactionProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final allGoals = goalProvider.goals;
@@ -1019,11 +1148,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
         title: const Text('Celengan Impian'),
       ),
       body: RefreshIndicator(
-        onRefresh: () => goalProvider.loadGoals(),
+        onRefresh: () async {
+          await goalProvider.loadGoals();
+          await txProvider.loadTransactions();
+        },
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           children: [
             _buildSummaryCard(goalProvider, isDark),
+            const SizedBox(height: 10),
+            _buildKasUtamaInfo(txProvider, isDark),
             const SizedBox(height: 20),
 
             // Header Daftar Impian dengan Filter Responsif Penuh (Tanpa Offset)
