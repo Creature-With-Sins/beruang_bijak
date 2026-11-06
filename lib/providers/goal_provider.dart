@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/goal_model.dart';
+import '../models/transaction_model.dart';
 
 class GoalProvider extends ChangeNotifier {
   static const String _goalsPrefKey = 'savings_goals_data';
@@ -135,6 +136,45 @@ class GoalProvider extends ChangeNotifier {
     _goals.removeWhere((g) => g.id == goalId);
     await _saveToPrefs();
     notifyListeners();
+  }
+
+  /// Menyesuaikan saldo celengan jika transaksi terkait dihapus dari Kas Utama
+  /// Mengembalikan true jika celengan ditemukan dan saldo disesuaikan
+  Future<bool> adjustGoalOnTransactionDeleted(TransactionModel tx) async {
+    String? targetGoalId = tx.goalId;
+
+    // Fallback pencocokan jika transaksi belum memiliki goalId (misal transaksi dari versi lama)
+    if (targetGoalId == null || targetGoalId.isEmpty) {
+      if (tx.category == 'Tabungan' || tx.note?.contains('Celengan Impian') == true) {
+        final match = _goals.cast<GoalModel?>().firstWhere(
+          (g) => g != null && tx.title.contains(g.title),
+          orElse: () => null,
+        );
+        if (match != null) {
+          targetGoalId = match.id;
+        }
+      }
+    }
+
+    if (targetGoalId == null || targetGoalId.isEmpty) return false;
+
+    final index = _goals.indexWhere((g) => g.id == targetGoalId);
+    if (index == -1) return false;
+
+    final goal = _goals[index];
+    if (tx.type == TransactionType.expense) {
+      // Transaksi setor/nabung dihapus dari kas -> batalkan penambahan celengan
+      final newSaved = (goal.savedAmount - tx.amount).clamp(0.0, double.infinity);
+      _goals[index] = goal.copyWith(savedAmount: newSaved);
+    } else if (tx.type == TransactionType.income) {
+      // Transaksi tarik dihapus dari kas -> kembalikan dana ke dalam celengan
+      final newSaved = goal.savedAmount + tx.amount;
+      _goals[index] = goal.copyWith(savedAmount: newSaved);
+    }
+
+    await _saveToPrefs();
+    notifyListeners();
+    return true;
   }
 
   Future<void> _saveToPrefs() async {

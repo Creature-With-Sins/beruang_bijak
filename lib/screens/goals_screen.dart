@@ -348,6 +348,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                             );
 
                             if (saved > 0 && isSyncedWithWallet) {
+                              final createdGoal = goalProv.goals.first;
                               await txProv.addTransaction(
                                 title: 'Setoran Awal: $title',
                                 amount: saved,
@@ -355,6 +356,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                 category: 'Tabungan',
                                 date: DateTime.now(),
                                 note: 'Alokasi ke Celengan Impian ($title)',
+                                goalId: createdGoal.id,
                               );
                             }
                           }
@@ -545,6 +547,31 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           final goalProv = context.read<GoalProvider>();
                           final txProv = context.read<TransactionProvider>();
 
+                          // Peringatan jika saldo kas tidak mencukupi untuk setoran terhubung kas
+                          if (goal.isSyncedWithWallet && val > txProv.totalBalance) {
+                            final proceed = await showDialog<bool>(
+                              context: context,
+                              builder: (warnCtx) => AlertDialog(
+                                title: const Text('Saldo Kas Kurang'),
+                                content: Text(
+                                  'Nominal setoran (${AppFormatters.formatCurrency(val)}) melebihi sisa saldo kas utama Anda (${AppFormatters.formatCurrency(txProv.totalBalance)}).\n\nSaldo kas akan menjadi minus jika dilanjutkan. Tetap lanjutkan?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(warnCtx, false),
+                                    child: const Text('Batal'),
+                                  ),
+                                  FilledButton(
+                                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFF087F8C)),
+                                    onPressed: () => Navigator.pop(warnCtx, true),
+                                    child: const Text('Tetap Lanjut'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (proceed != true) return;
+                          }
+
                           await goalProv.deposit(goal.id, val);
 
                           if (goal.isSyncedWithWallet) {
@@ -555,6 +582,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               category: 'Tabungan',
                               date: DateTime.now(),
                               note: 'Alokasi ke Celengan Impian (${goal.title})',
+                              goalId: goal.id,
                             );
                           }
 
@@ -769,6 +797,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               category: 'Tabungan',
                               date: DateTime.now(),
                               note: 'Penarikan dari Celengan Impian (${goal.title})',
+                              goalId: goal.id,
                             );
                           }
 
@@ -798,12 +827,51 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   void _confirmDeleteGoal(GoalModel goal) {
+    final refundAmount = goal.savedAmount;
+    final isSynced = goal.isSyncedWithWallet;
+    final hasBalance = refundAmount > 0;
+
     showDialog<void>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 32),
         title: const Text('Hapus Celengan Impian?'),
-        content: Text('Apakah kamu yakin ingin menghapus celengan "${goal.title}"?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Apakah kamu yakin ingin menghapus celengan "${goal.title}"?'),
+            if (hasBalance && isSynced) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF087F8C).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF087F8C).withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet_rounded, size: 20, color: Color(0xFF087F8C)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Sisa saldo sebesar ${AppFormatters.formatCurrency(refundAmount)} akan otomatis dikembalikan ke Kas Utama Anda 💵',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (hasBalance && !isSynced) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Catatan: Celengan mandiri ini memiliki catatan tabungan ${AppFormatters.formatCurrency(refundAmount)}. Penghapusan tidak mempengaruhi kas utama.',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
@@ -814,10 +882,31 @@ class _GoalsScreenState extends State<GoalsScreen> {
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
               final nav = Navigator.of(dialogCtx);
+              final goalProv = context.read<GoalProvider>();
+              final txProv = context.read<TransactionProvider>();
               nav.pop();
-              await context.read<GoalProvider>().deleteGoal(goal.id);
+
+              if (hasBalance && isSynced) {
+                await txProv.addTransaction(
+                  title: 'Penutupan Celengan: ${goal.title}',
+                  amount: refundAmount,
+                  type: TransactionType.income,
+                  category: 'Tabungan',
+                  date: DateTime.now(),
+                  note: 'Pengembalian sisa saldo celengan yang dihapus',
+                  goalId: goal.id,
+                );
+              }
+
+              await goalProv.deleteGoal(goal.id);
               messenger.showSnackBar(
-                SnackBar(content: Text('Celengan "${goal.title}" berhasil dihapus.')),
+                SnackBar(
+                  content: Text(
+                    hasBalance && isSynced
+                        ? 'Celengan "${goal.title}" dihapus. Sisa saldo ${AppFormatters.formatCurrency(refundAmount)} telah dikembalikan ke Kas Utama 💵'
+                        : 'Celengan "${goal.title}" berhasil dihapus.',
+                  ),
+                ),
               );
             },
             child: const Text('Hapus'),

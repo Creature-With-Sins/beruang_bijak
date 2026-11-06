@@ -211,6 +211,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           note: _noteController.text.trim().isEmpty
               ? null
               : _noteController.text.trim(),
+          goalId: widget.transactionToEdit!.goalId,
         );
       } else {
         await provider.addTransaction(

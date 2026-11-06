@@ -99,10 +99,12 @@ class TransactionProvider with ChangeNotifier {
     required String category,
     required DateTime date,
     String? note,
+    String? goalId,
   }) async {
     final newTx = TransactionModel(
       id: const Uuid().v4(),
       userId: _currentUserId,
+      goalId: goalId,
       title: title,
       amount: amount,
       type: type,
@@ -128,10 +130,12 @@ class TransactionProvider with ChangeNotifier {
     required String category,
     required DateTime date,
     String? note,
+    String? goalId,
   }) async {
     final updatedTx = TransactionModel(
       id: id,
       userId: _currentUserId,
+      goalId: goalId,
       title: title,
       amount: amount,
       type: type,
@@ -151,9 +155,15 @@ class TransactionProvider with ChangeNotifier {
   }
 
   // Hapus Transaksi Dari Memory & SQLite
-  Future<void> deleteTransaction(String id) async {
+  Future<TransactionModel?> deleteTransaction(String id) async {
+    final index = _transactions.indexWhere((tx) => tx.id == id);
+    TransactionModel? deletedTx;
+    if (index != -1) {
+      deletedTx = _transactions[index];
+    }
     await DatabaseHelper.instance.deleteTransaction(id);
     _transactions.removeWhere((tx) => tx.id == id);
     notifyListeners();
+    return deletedTx;
   }
 }

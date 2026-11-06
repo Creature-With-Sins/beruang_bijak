@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/transaction_model.dart';
+import '../providers/goal_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../screens/add_transaction_screen.dart';
 import '../utils/app_formatters.dart';
@@ -15,6 +16,14 @@ class TransactionCard extends StatelessWidget {
     required this.transaction,
     this.showDate = true,
   });
+
+  bool get _isGoalTransaction =>
+      transaction.goalId != null ||
+      (transaction.category == 'Tabungan' &&
+          (transaction.title.startsWith('Nabung:') ||
+              transaction.title.startsWith('Tarik Celengan:') ||
+              transaction.title.startsWith('Setoran Awal:') ||
+              transaction.title.startsWith('Penutupan Celengan:')));
 
   void _showDetailModal(BuildContext context) {
     final theme = Theme.of(context);
@@ -164,6 +173,17 @@ class TransactionCard extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: () {
                         Navigator.pop(modalContext);
+                        if (_isGoalTransaction) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Transaksi Celengan Impian dikelola otomatis. Gunakan tombol Tabung / Tarik di menu Celengan Impian untuk mengubah saldo.',
+                              ),
+                              backgroundColor: Color(0xFF087F8C),
+                            ),
+                          );
+                          return;
+                        }
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -232,7 +252,9 @@ class TransactionCard extends StatelessWidget {
             return AlertDialog(
               title: const Text('Hapus Transaksi?'),
               content: Text(
-                'Transaksi "${transaction.title}" akan dihapus permanen.',
+                _isGoalTransaction
+                    ? 'Transaksi "${transaction.title}" terhubung dengan Celengan Impian. Menghapus transaksi ini akan secara otomatis membatalkan/menyesuaikan saldo di celengan terkait agar pembukuan kas tetap seimbang.'
+                    : 'Transaksi "${transaction.title}" akan dihapus permanen.',
               ),
               actions: [
                 TextButton(
@@ -254,13 +276,24 @@ class TransactionCard extends StatelessWidget {
         false;
 
     if (confirmed && context.mounted) {
-      context.read<TransactionProvider>().deleteTransaction(transaction.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Transaksi berhasil dihapus.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      final goalProv = context.read<GoalProvider>();
+      final txProv = context.read<TransactionProvider>();
+      if (_isGoalTransaction) {
+        await goalProv.adjustGoalOnTransactionDeleted(transaction);
+      }
+      await txProv.deleteTransaction(transaction.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isGoalTransaction
+                  ? 'Transaksi dihapus & saldo Celengan terkait telah disesuaikan.'
+                  : 'Transaksi berhasil dihapus.',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -301,7 +334,9 @@ class TransactionCard extends StatelessWidget {
                 return AlertDialog(
                   title: const Text('Hapus Transaksi?'),
                   content: Text(
-                    'Transaksi "${transaction.title}" akan dihapus.',
+                    _isGoalTransaction
+                        ? 'Transaksi "${transaction.title}" terhubung dengan Celengan Impian. Menghapus transaksi ini akan menyesuaikan saldo celengan terkait agar pembukuan tetap seimbang.'
+                        : 'Transaksi "${transaction.title}" akan dihapus.',
                   ),
                   actions: [
                     TextButton(
@@ -322,14 +357,25 @@ class TransactionCard extends StatelessWidget {
             ) ??
             false;
       },
-      onDismissed: (_) {
-        context.read<TransactionProvider>().deleteTransaction(transaction.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Transaksi berhasil dihapus'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+      onDismissed: (_) async {
+        final goalProv = context.read<GoalProvider>();
+        final txProv = context.read<TransactionProvider>();
+        if (_isGoalTransaction) {
+          await goalProv.adjustGoalOnTransactionDeleted(transaction);
+        }
+        await txProv.deleteTransaction(transaction.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _isGoalTransaction
+                    ? 'Transaksi dihapus & saldo Celengan telah disesuaikan'
+                    : 'Transaksi berhasil dihapus',
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       },
       child: Material(
         color: Colors.transparent,

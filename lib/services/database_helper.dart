@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -32,6 +32,7 @@ class DatabaseHelper {
       CREATE TABLE transactions (
         id TEXT PRIMARY KEY,
         userId TEXT,
+        goalId TEXT,
         title TEXT NOT NULL,
         amount REAL NOT NULL,
         type TEXT NOT NULL,
@@ -46,6 +47,9 @@ class DatabaseHelper {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('ALTER TABLE transactions ADD COLUMN userId TEXT;');
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE transactions ADD COLUMN goalId TEXT;');
     }
   }
 
