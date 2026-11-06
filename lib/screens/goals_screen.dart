@@ -30,7 +30,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final noteController = TextEditingController(text: editGoal?.note ?? '');
     DateTime? selectedDate = editGoal?.targetDate;
     String selectedCategory = editGoal?.category ?? 'Elektronik';
-    bool recordAsExpense = true; // default true for new goal initial deposit
+    bool isSyncedWithWallet = editGoal?.isSyncedWithWallet ?? true;
 
     const categories = [
       'Elektronik',
@@ -148,22 +148,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Potong setoran awal dari kas utama',
-                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
-                        ),
-                        subtitle: const Text(
-                          'Otomatis dicatat sebagai pengeluaran (Kategori: Tabungan)',
-                          style: TextStyle(fontSize: 11, color: Colors.grey),
-                        ),
-                        value: recordAsExpense,
-                        onChanged: (val) {
-                          setSheetState(() => recordAsExpense = val);
-                        },
-                      ),
+                      const SizedBox(height: 12),
                     ] else ...[
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -192,7 +177,53 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 12),
                     ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSyncedWithWallet
+                              ? const Color(0xFF087F8C).withValues(alpha: 0.3)
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Row(
+                          children: [
+                            Icon(
+                              isSyncedWithWallet ? Icons.sync_rounded : Icons.sync_disabled_rounded,
+                              size: 18,
+                              color: isSyncedWithWallet ? const Color(0xFF087F8C) : Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Sinkronkan dengan Kas Utama',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            isSyncedWithWallet
+                                ? 'Setiap kali menabung otomatis potong saldo kas, dan setiap kali ditarik otomatis dikembalikan ke dompet kas.'
+                                : 'Mode Mandiri: Tabungan dicatat terpisah (misal celengan fisik di kamar) tanpa menyentuh kas utama.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                        value: isSyncedWithWallet,
+                        onChanged: (val) {
+                          setSheetState(() => isSyncedWithWallet = val);
+                        },
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       initialValue: selectedCategory,
@@ -302,6 +333,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               category: selectedCategory,
                               targetDate: selectedDate,
                               note: noteController.text.trim(),
+                              isSyncedWithWallet: isSyncedWithWallet,
                             );
                             await goalProv.updateGoal(updated);
                           } else {
@@ -312,9 +344,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               category: selectedCategory,
                               targetDate: selectedDate,
                               note: noteController.text.trim(),
+                              isSyncedWithWallet: isSyncedWithWallet,
                             );
 
-                            if (saved > 0 && recordAsExpense) {
+                            if (saved > 0 && isSyncedWithWallet) {
                               await txProv.addTransaction(
                                 title: 'Setoran Awal: $title',
                                 amount: saved,
@@ -352,7 +385,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   void _showDepositSheet(GoalModel goal) {
     final amountController = TextEditingController();
-    bool recordAsExpense = true;
     final remaining = goal.remainingAmount;
 
     showModalBottomSheet<void>(
@@ -456,21 +488,44 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Potong saldo kas utama otomatis',
-                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: goal.isSyncedWithWallet
+                            ? const Color(0xFF087F8C).withValues(alpha: 0.1)
+                            : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: goal.isSyncedWithWallet
+                              ? const Color(0xFF087F8C).withValues(alpha: 0.3)
+                              : Colors.grey.withValues(alpha: 0.3),
+                        ),
                       ),
-                      subtitle: const Text(
-                        'Otomatis dicatat sebagai pengeluaran (Kategori: Tabungan)',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      child: Row(
+                        children: [
+                          Icon(
+                            goal.isSyncedWithWallet ? Icons.sync_rounded : Icons.sync_disabled_rounded,
+                            size: 18,
+                            color: goal.isSyncedWithWallet ? const Color(0xFF087F8C) : Colors.grey,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              goal.isSyncedWithWallet
+                                  ? 'Terhubung Kas Utama: Setoran ini otomatis memotong saldo dompet kas Anda (Kategori: Tabungan).'
+                                  : 'Celengan Mandiri: Setoran ini hanya mencatat progress impian tanpa memotong saldo kas utama.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: goal.isSyncedWithWallet
+                                    ? (isDark ? Colors.tealAccent.shade100 : const Color(0xFF087F8C))
+                                    : (isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      value: recordAsExpense,
-                      onChanged: (val) {
-                        setSheetState(() => recordAsExpense = val);
-                      },
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -492,7 +547,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
                           await goalProv.deposit(goal.id, val);
 
-                          if (recordAsExpense) {
+                          if (goal.isSyncedWithWallet) {
                             await txProv.addTransaction(
                               title: 'Nabung: ${goal.title}',
                               amount: val,
@@ -512,9 +567,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               content: Text(
                                 isNowCompleted
                                     ? '🎉 SELAMAT! Impian "${goal.title}" berhasil tercapai 100%!'
-                                    : recordAsExpense
+                                    : goal.isSyncedWithWallet
                                         ? 'Setoran ${AppFormatters.formatCurrency(val)} berhasil! Saldo kas utama telah terpotong 🪙'
-                                        : 'Setoran ${AppFormatters.formatCurrency(val)} berhasil ditambahkan ke celengan 🪙',
+                                        : 'Setoran ${AppFormatters.formatCurrency(val)} berhasil dicatat (Mode Mandiri: Kas utama tidak berubah) 🪙',
                               ),
                               backgroundColor: isNowCompleted ? const Color(0xFF087F8C) : const Color(0xFF16A36A),
                             ),
@@ -535,7 +590,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   void _showWithdrawSheet(GoalModel goal) {
     final amountController = TextEditingController();
-    bool recordAsIncome = true;
 
     showModalBottomSheet<void>(
       context: context,
@@ -642,21 +696,44 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Kembalikan saldo ke kas utama',
-                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: goal.isSyncedWithWallet
+                            ? const Color(0xFF087F8C).withValues(alpha: 0.1)
+                            : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: goal.isSyncedWithWallet
+                              ? const Color(0xFF087F8C).withValues(alpha: 0.3)
+                              : Colors.grey.withValues(alpha: 0.3),
+                        ),
                       ),
-                      subtitle: const Text(
-                        'Otomatis dicatat sebagai pemasukan balik (Kategori: Tabungan)',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      child: Row(
+                        children: [
+                          Icon(
+                            goal.isSyncedWithWallet ? Icons.sync_rounded : Icons.sync_disabled_rounded,
+                            size: 18,
+                            color: goal.isSyncedWithWallet ? const Color(0xFF087F8C) : Colors.grey,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              goal.isSyncedWithWallet
+                                  ? 'Terhubung Kas Utama: Saldo ditarik akan langsung dikembalikan ke dompet kas Anda (Kategori: Tabungan).'
+                                  : 'Celengan Mandiri: Penarikan ini hanya mengurangi catatan impian tanpa menambah saldo kas utama.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: goal.isSyncedWithWallet
+                                    ? (isDark ? Colors.tealAccent.shade100 : const Color(0xFF087F8C))
+                                    : (isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      value: recordAsIncome,
-                      onChanged: (val) {
-                        setSheetState(() => recordAsIncome = val);
-                      },
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -684,7 +761,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
                           await goalProv.withdraw(goal.id, val);
 
-                          if (recordAsIncome) {
+                          if (goal.isSyncedWithWallet) {
                             await txProv.addTransaction(
                               title: 'Tarik Celengan: ${goal.title}',
                               amount: val,
@@ -699,9 +776,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           messenger.showSnackBar(
                             SnackBar(
                               content: Text(
-                                recordAsIncome
+                                goal.isSyncedWithWallet
                                     ? 'Penarikan ${AppFormatters.formatCurrency(val)} berhasil! Saldo sebesar ${AppFormatters.formatCurrency(val)} telah dikembalikan ke Kas Utama Anda 💵'
-                                    : 'Penarikan ${AppFormatters.formatCurrency(val)} berhasil (Mode Standalone: Saldo kas utama tidak berubah)',
+                                    : 'Penarikan ${AppFormatters.formatCurrency(val)} berhasil dicatat (Mode Mandiri: Kas utama tidak berubah)',
                               ),
                               backgroundColor: const Color(0xFF087F8C),
                             ),
@@ -1015,6 +1092,35 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                 fontSize: 10.5,
                                 color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
                               ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: goal.isSyncedWithWallet
+                                  ? const Color(0xFF087F8C).withValues(alpha: 0.12)
+                                  : Colors.grey.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  goal.isSyncedWithWallet ? Icons.sync_rounded : Icons.sync_disabled_rounded,
+                                  size: 11,
+                                  color: goal.isSyncedWithWallet ? const Color(0xFF087F8C) : Colors.grey,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  goal.isSyncedWithWallet ? 'Sinkron Kas' : 'Mandiri',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: goal.isSyncedWithWallet ? const Color(0xFF087F8C) : Colors.grey,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           if (remainingDays != null) ...[

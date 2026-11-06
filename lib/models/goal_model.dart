@@ -8,6 +8,7 @@ class GoalModel {
   final String category;
   final String? note;
   final DateTime createdAt;
+  final bool isSyncedWithWallet;
 
   const GoalModel({
     required this.id,
@@ -19,6 +20,7 @@ class GoalModel {
     this.category = 'Lainnya',
     this.note,
     required this.createdAt,
+    this.isSyncedWithWallet = true,
   });
 
   double get progress => targetAmount <= 0
@@ -49,6 +51,7 @@ class GoalModel {
     String? category,
     String? note,
     DateTime? createdAt,
+    bool? isSyncedWithWallet,
   }) {
     return GoalModel(
       id: id ?? this.id,
@@ -60,6 +63,7 @@ class GoalModel {
       category: category ?? this.category,
       note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
+      isSyncedWithWallet: isSyncedWithWallet ?? this.isSyncedWithWallet,
     );
   }
 
@@ -74,6 +78,7 @@ class GoalModel {
       'category': category,
       'note': note,
       'createdAt': createdAt.toIso8601String(),
+      'isSyncedWithWallet': isSyncedWithWallet,
     };
   }
 
@@ -92,6 +97,7 @@ class GoalModel {
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'] as String)
           : DateTime.now(),
+      isSyncedWithWallet: map['isSyncedWithWallet'] as bool? ?? true,
     );
   }
 }

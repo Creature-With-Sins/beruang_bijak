@@ -74,6 +74,7 @@ class GoalProvider extends ChangeNotifier {
     DateTime? targetDate,
     String category = 'Lainnya',
     String? note,
+    bool isSyncedWithWallet = true,
   }) async {
     final newGoal = GoalModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -85,6 +86,7 @@ class GoalProvider extends ChangeNotifier {
       category: category,
       note: note?.trim(),
       createdAt: DateTime.now(),
+      isSyncedWithWallet: isSyncedWithWallet,
     );
 
     _goals.insert(0, newGoal);
